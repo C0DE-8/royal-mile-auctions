@@ -1,5 +1,9 @@
 function toAuctionItem(row) {
   const auctionPrice = Math.round(row.main_price * (1 - row.discount_percent / 100))
+  const galleryImages = row.gallery_images
+    ? row.gallery_images.split(',').filter(Boolean)
+    : []
+  const images = [row.image_url, ...galleryImages].filter(Boolean)
 
   return {
     id: row.id,
@@ -23,6 +27,7 @@ function toAuctionItem(row) {
     drivetrain: row.drivetrain,
     notes: row.notes,
     imageUrl: row.image_url,
+    images,
     isActive: Boolean(row.is_active),
     createdAt: row.created_at,
     updatedAt: row.updated_at,

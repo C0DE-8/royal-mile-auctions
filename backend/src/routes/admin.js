@@ -11,9 +11,43 @@ const router = express.Router()
 
 router.use(authenticate, requireAdmin)
 
+const auctionItemSelect = `
+  SELECT
+    ai.*,
+    gallery.gallery_images
+  FROM auction_items ai
+  LEFT JOIN (
+    SELECT
+      auction_item_id,
+      GROUP_CONCAT(image_url ORDER BY sort_order, id SEPARATOR ',') AS gallery_images
+    FROM auction_item_images
+    GROUP BY auction_item_id
+  ) gallery ON gallery.auction_item_id = ai.id
+`
+
 async function findAuctionItem(id) {
-  const rows = await query('SELECT * FROM auction_items WHERE id = ?;', [id])
+  const rows = await query(`
+    ${auctionItemSelect}
+    WHERE ai.id = ?
+  `, [id])
   return rows[0]
+}
+
+async function addAuctionItemImages(auctionItemId, files = []) {
+  if (files.length === 0) {
+    return
+  }
+
+  const rows = await query(
+    'SELECT COALESCE(MAX(sort_order), 0) AS maxSortOrder FROM auction_item_images WHERE auction_item_id = ?;',
+    [auctionItemId],
+  )
+  const nextSortOrder = Number(rows[0]?.maxSortOrder || 0) + 1
+
+  await Promise.all(files.map((file, index) => run(
+    'INSERT INTO auction_item_images (auction_item_id, image_url, sort_order) VALUES (?, ?, ?);',
+    [auctionItemId, `/uploads/auction-items/${file.filename}`, nextSortOrder + index],
+  )))
 }
 
 async function findWallet(id) {
@@ -22,11 +56,17 @@ async function findWallet(id) {
 }
 
 router.get('/auction-items', asyncRoute(async (req, res) => {
-  const rows = await query('SELECT * FROM auction_items ORDER BY created_at DESC, id DESC;')
+  const rows = await query(`
+    ${auctionItemSelect}
+    ORDER BY ai.created_at DESC, ai.id DESC;
+  `)
   res.json({ data: rows.map(toAuctionItem) })
 }))
 
-router.post('/auction-items', uploadTo('auction-items'), upload.single('image'), asyncRoute(async (req, res) => {
+router.post('/auction-items', uploadTo('auction-items'), upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'images', maxCount: 12 },
+]), asyncRoute(async (req, res) => {
   const body = req.body
   requireFields(body, [
     'year',
@@ -47,7 +87,9 @@ router.post('/auction-items', uploadTo('auction-items'), upload.single('image'),
     'notes',
   ])
 
-  const imageUrl = req.file ? `/uploads/auction-items/${req.file.filename}` : body.imageUrl
+  const primaryImage = req.files?.image?.[0]
+  const galleryImages = req.files?.images || []
+  const imageUrl = primaryImage ? `/uploads/auction-items/${primaryImage.filename}` : body.imageUrl
   if (!imageUrl) {
     res.status(400).json({ error: 'Auction item image is required.' })
     return
@@ -85,10 +127,15 @@ router.post('/auction-items', uploadTo('auction-items'), upload.single('image'),
   )
 
   const created = await findAuctionItem(result.insertId)
-  res.status(201).json({ data: toAuctionItem(created) })
+  await addAuctionItemImages(result.insertId, galleryImages)
+  const createdWithImages = await findAuctionItem(result.insertId)
+  res.status(201).json({ data: toAuctionItem(createdWithImages || created) })
 }))
 
-router.put('/auction-items/:id', uploadTo('auction-items'), upload.single('image'), asyncRoute(async (req, res) => {
+router.put('/auction-items/:id', uploadTo('auction-items'), upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'images', maxCount: 12 },
+]), asyncRoute(async (req, res) => {
   const id = Number(req.params.id)
   const existing = await findAuctionItem(id)
   if (!existing) {
@@ -97,7 +144,9 @@ router.put('/auction-items/:id', uploadTo('auction-items'), upload.single('image
   }
 
   const body = req.body
-  const nextImageUrl = req.file ? `/uploads/auction-items/${req.file.filename}` : body.imageUrl || existing.image_url
+  const primaryImage = req.files?.image?.[0]
+  const galleryImages = req.files?.images || []
+  const nextImageUrl = primaryImage ? `/uploads/auction-items/${primaryImage.filename}` : body.imageUrl || existing.image_url
   await run(
     `UPDATE auction_items SET
       title = ?,
@@ -146,6 +195,7 @@ router.put('/auction-items/:id', uploadTo('auction-items'), upload.single('image
     ],
   )
 
+  await addAuctionItemImages(id, galleryImages)
   const updated = await findAuctionItem(id)
   res.json({ data: toAuctionItem(updated) })
 }))

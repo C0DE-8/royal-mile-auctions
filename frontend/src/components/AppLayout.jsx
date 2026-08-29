@@ -11,6 +11,7 @@ import HomePage from '../pages/Home/HomePage.jsx'
 import InventoryPage from '../pages/Inventory/InventoryPage.jsx'
 import NotFoundPage from '../pages/NotFound/NotFoundPage.jsx'
 import SellVehiclePage from '../pages/SellVehicle/SellVehiclePage.jsx'
+import VehicleDetailPage from '../pages/VehicleDetail/VehicleDetailPage.jsx'
 
 function AppLayout() {
   return (
@@ -22,6 +23,7 @@ function AppLayout() {
           <Route path="/" element={<HomePage />} />
           <Route path="/auctions" element={<AuctionsPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/inventory/:id" element={<VehicleDetailPage />} />
           <Route path="/buyers" element={<BuyerInfoPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/sell" element={<SellVehiclePage />} />

@@ -166,8 +166,8 @@ function InventoryPage() {
                   <dd>{vehicle.vin}</dd>
                 </div>
               </dl>
-              <Link className="button primary listing-action" to="/dashboard">
-                Bid / Pay
+              <Link className="button primary listing-action" to={`/inventory/${vehicle.id}`}>
+                View details
               </Link>
             </div>
           </article>
@@ -225,7 +225,7 @@ function InventoryPage() {
             <span role="cell">{vehicle.title}</span>
             <span role="cell">
               {vehicle.light}
-              <Link className="table-action" to="/dashboard">Bid</Link>
+              <Link className="table-action" to={`/inventory/${vehicle.id}`}>Details</Link>
             </span>
           </div>
         ))}

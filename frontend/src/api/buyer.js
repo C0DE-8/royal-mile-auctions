@@ -13,7 +13,7 @@ export async function buyerLogin(email, password) {
     const response = await axiosInstance.post('/api/auth/login', { email, password })
     return response.data.data
   } catch (error) {
-    throw new Error(error.response?.data?.error || 'Unable to log in.')
+    throw new Error(error.response?.data?.error || 'Unable to log in.', { cause: error })
   }
 }
 
@@ -22,7 +22,7 @@ export async function buyerRegister(form) {
     const response = await axiosInstance.post('/api/auth/register', form)
     return response.data.data
   } catch (error) {
-    throw new Error(error.response?.data?.error || 'Unable to create buyer account.')
+    throw new Error(error.response?.data?.error || 'Unable to create buyer account.', { cause: error })
   }
 }
 
@@ -33,7 +33,7 @@ export async function fetchBuyerBids(token) {
     })
     return response.data.data
   } catch (error) {
-    throw new Error(error.response?.data?.error || 'Unable to load bids.')
+    throw new Error(error.response?.data?.error || 'Unable to load bids.', { cause: error })
   }
 }
 
@@ -44,7 +44,7 @@ export async function createBid(token, auctionItemId, amount) {
     })
     return response.data.data
   } catch (error) {
-    throw new Error(error.response?.data?.error || 'Unable to place bid.')
+    throw new Error(error.response?.data?.error || 'Unable to place bid.', { cause: error })
   }
 }
 
@@ -55,7 +55,7 @@ export async function fetchBuyerPayments(token) {
     })
     return response.data.data
   } catch (error) {
-    throw new Error(error.response?.data?.error || 'Unable to load payments.')
+    throw new Error(error.response?.data?.error || 'Unable to load payments.', { cause: error })
   }
 }
 
@@ -66,7 +66,7 @@ export async function createPayment(token, form) {
     })
     return response.data.data
   } catch (error) {
-    throw new Error(error.response?.data?.error || 'Unable to submit payment.')
+    throw new Error(error.response?.data?.error || 'Unable to submit payment.', { cause: error })
   }
 }
 
@@ -75,6 +75,6 @@ export async function fetchCryptoWallets() {
     const response = await axiosInstance.get('/api/crypto-wallets')
     return response.data.data
   } catch (error) {
-    throw new Error(error.response?.data?.error || 'Unable to load payment wallets.')
+    throw new Error(error.response?.data?.error || 'Unable to load payment wallets.', { cause: error })
   }
 }

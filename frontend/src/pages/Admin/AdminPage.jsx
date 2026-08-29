@@ -190,6 +190,7 @@ function AdminPage() {
   const [vehicle, setVehicle] = useState(defaultVehicle)
   const [wallet, setWallet] = useState(defaultWallet)
   const [vehicleImage, setVehicleImage] = useState(null)
+  const [vehicleImages, setVehicleImages] = useState([])
   const [walletQr, setWalletQr] = useState(null)
   const [editingVehicleId, setEditingVehicleId] = useState(null)
   const [editingWalletId, setEditingWalletId] = useState(null)
@@ -354,6 +355,7 @@ function AdminPage() {
       if (vehicleImage) {
         formData.append('image', vehicleImage)
       }
+      vehicleImages.forEach((image) => formData.append('images', image))
 
       const item = editingVehicleId
         ? await updateAuctionItem(auth.token, editingVehicleId, formData)
@@ -361,6 +363,7 @@ function AdminPage() {
       await refreshAdminData(auth.token)
       setVehicle(defaultVehicle)
       setVehicleImage(null)
+      setVehicleImages([])
       setEditingVehicleId(null)
       event.target.reset()
       showSuccess(`Auction item ${editingVehicleId ? 'updated' : 'created'}: ${item.title}.`)
@@ -402,6 +405,7 @@ function AdminPage() {
   const startVehicleEdit = (item) => {
     setVehicle(vehicleToForm(item))
     setVehicleImage(null)
+    setVehicleImages([])
     setEditingVehicleId(item.id)
     setAlert({ type: 'success', message: `Editing ${item.title}.` })
     window.scrollTo({ behavior: 'smooth', top: 0 })
@@ -410,6 +414,7 @@ function AdminPage() {
   const cancelVehicleEdit = () => {
     setVehicle(defaultVehicle)
     setVehicleImage(null)
+    setVehicleImages([])
     setEditingVehicleId(null)
     setAlert(null)
   }
@@ -590,7 +595,13 @@ function AdminPage() {
             <label>Transmission<input name="transmission" value={vehicle.transmission} onChange={updateVehicle} required /></label>
             <label>Drivetrain<input name="drivetrain" value={vehicle.drivetrain} onChange={updateVehicle} required /></label>
             <label className="full">Notes<textarea name="notes" value={vehicle.notes} onChange={updateVehicle} required /></label>
-            <label className="full">Vehicle image<input type="file" accept="image/*" onChange={(event) => setVehicleImage(event.target.files[0])} /></label>
+            <label className="full">Primary vehicle image<input type="file" accept="image/*" onChange={(event) => setVehicleImage(event.target.files[0])} /></label>
+            <label className="full">More vehicle images<input type="file" accept="image/*" multiple onChange={(event) => setVehicleImages(Array.from(event.target.files))} /></label>
+            {vehicleImages.length > 0 && (
+              <p className="admin-file-summary full">
+                {vehicleImages.length} additional image{vehicleImages.length === 1 ? '' : 's'} selected.
+              </p>
+            )}
             <div className="admin-form-actions">
               <button className="button primary" type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Saving...' : editingVehicleId ? 'Save auction item' : 'Create auction item'}
@@ -629,7 +640,9 @@ function AdminPage() {
                     )}
                     <div>
                       <strong>{item.title}</strong>
-                      <span>{item.category} | Lane {item.lane} | {priceFormatter.format(item.auctionPrice)}</span>
+                      <span>
+                        {item.category} | Lane {item.lane} | {priceFormatter.format(item.auctionPrice)} | {(item.images?.length || 1)} photo{(item.images?.length || 1) === 1 ? '' : 's'}
+                      </span>
                       <div className="admin-row-actions">
                         <button type="button" onClick={() => startVehicleEdit(item)}>Edit</button>
                         <button type="button" className="danger" onClick={() => handleVehicleDelete(item)}>Delete</button>

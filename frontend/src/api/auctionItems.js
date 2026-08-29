@@ -9,9 +9,15 @@ function resolveImageUrl(imageUrl) {
 }
 
 function normalizeAuctionItem(item) {
+  const images = Array.isArray(item.images)
+    ? item.images.map(resolveImageUrl).filter(Boolean)
+    : []
+  const image = resolveImageUrl(item.imageUrl)
+
   return {
     id: item.id,
-    image: resolveImageUrl(item.imageUrl),
+    image,
+    images: images.length > 0 ? images : [image].filter(Boolean),
     year: String(item.year),
     make: item.make,
     model: item.model,
@@ -37,6 +43,19 @@ export async function fetchAuctionItems() {
     const response = await axiosInstance.get('/api/auction-items')
     return response.data.data.map(normalizeAuctionItem)
   } catch (error) {
-    throw new Error(error.response?.data?.error || 'Unable to load auction inventory.')
+    throw new Error(error.response?.data?.error || 'Unable to load auction inventory.', {
+      cause: error,
+    })
+  }
+}
+
+export async function fetchAuctionItem(id) {
+  try {
+    const response = await axiosInstance.get(`/api/auction-items/${id}`)
+    return normalizeAuctionItem(response.data.data)
+  } catch (error) {
+    throw new Error(error.response?.data?.error || 'Unable to load vehicle details.', {
+      cause: error,
+    })
   }
 }
