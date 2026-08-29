@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import brandLogo from '../assets/logos/Royal-Mile-Auctions-logo.png'
 
 function Preloader() {
   const [isVisible, setIsVisible] = useState(true)
@@ -18,7 +19,7 @@ function Preloader() {
   return (
     <div className="preloader" role="status" aria-label="Loading auction site">
       <div className="preloader-mark">
-        <img src="/royal-mile-logo.png" alt="" />
+        <img src={brandLogo} alt="" />
       </div>
       <div className="preloader-copy">
         <strong>Royal Mile Auctions</strong>

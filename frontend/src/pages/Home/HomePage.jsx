@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react'
 import auctionHero from '../../assets/auction-hero.png'
 import auctionLane from '../../assets/auction-lane.png'
 import auctionRegistration from '../../assets/auction-registration.png'
+import { fetchAuctionItems } from '../../api/auctionItems.js'
 import {
   auctionStats,
   auctionSteps,
@@ -33,7 +35,38 @@ const heroSlides = [
   },
 ]
 
+const discountRate = 0.6
+const priceFormatter = new Intl.NumberFormat('en-US', {
+  currency: 'USD',
+  maximumFractionDigits: 0,
+  style: 'currency',
+})
+
+const getAuctionPrice = (mainPrice) => Math.round(mainPrice * (1 - discountRate))
+
 function HomePage() {
+  const [auctionItems, setAuctionItems] = useState(featuredVehicles)
+
+  useEffect(() => {
+    let isMounted = true
+
+    fetchAuctionItems()
+      .then((items) => {
+        if (isMounted) {
+          setAuctionItems(items.slice(0, 4))
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setAuctionItems(featuredVehicles)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
   return (
     <>
       <HeroSlider slides={heroSlides} />
@@ -58,7 +91,7 @@ function HomePage() {
           </p>
         </div>
         <div className="vehicle-grid">
-          {featuredVehicles.map((vehicle) => (
+          {auctionItems.map((vehicle) => (
             <article
               className="vehicle-card reveal-card"
               key={`${vehicle.year}-${vehicle.lane}`}
@@ -72,6 +105,13 @@ function HomePage() {
               <h3>
                 {vehicle.year} {vehicle.make} {vehicle.model}
               </h3>
+              <div className="price-panel compact" aria-label="Auction pricing">
+                <span className="discount-badge">60% off</span>
+                <strong>{priceFormatter.format(getAuctionPrice(vehicle.mainPrice))}</strong>
+                <span>
+                  Main price <s>{priceFormatter.format(vehicle.mainPrice)}</s>
+                </span>
+              </div>
               <p>{vehicle.miles}</p>
               <dl>
                 <div>

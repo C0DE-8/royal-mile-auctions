@@ -1,0 +1,20 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: carautos_root
+      MYSQL_DATABASE: carautos
+      MYSQL_USER: carautos
+      MYSQL_PASSWORD: carautos_password
+    ports:
+      - '3306:3306'
+    volumes:
+      - carautos_mysql:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-u', 'carautos', '-pcarautos_password']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  carautos_mysql:

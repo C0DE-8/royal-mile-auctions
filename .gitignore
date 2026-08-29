@@ -1,0 +1,13 @@
+backend/node_modules/
+backend/data/
+backend/uploads/*
+!backend/uploads/auction-items/
+backend/uploads/auction-items/*
+!backend/uploads/auction-items/seed-vehicle-camry.png
+!backend/uploads/auction-items/seed-vehicle-crv.png
+!backend/uploads/auction-items/seed-vehicle-f150.png
+!backend/uploads/auction-items/seed-vehicle-silverado.png
+!backend/uploads/wallet-qr/
+backend/uploads/wallet-qr/*
+*.log
+.DS_Store

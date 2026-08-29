@@ -29,6 +29,10 @@
   text-decoration: none;
 }
 
+.menu-toggle {
+  display: none;
+}
+
 .brand-logo {
   border: 1px solid rgba(213, 166, 66, 0.42);
   border-radius: 50%;
@@ -684,10 +688,21 @@ dd {
   padding: 8px 18px;
 }
 
-.inventory-toolbar button:first-child {
+.inventory-toolbar button.active,
+.inventory-toolbar button[aria-pressed='true'] {
   background: linear-gradient(135deg, var(--blue), var(--plum));
   border-color: transparent;
   color: #fff;
+}
+
+.inventory-notice {
+  background: rgba(213, 166, 66, 0.14);
+  border: 1px solid rgba(213, 166, 66, 0.36);
+  border-radius: 8px;
+  color: var(--steel);
+  font-weight: 700;
+  margin: 0 0 20px;
+  padding: 12px 14px;
 }
 
 .inventory-table {
@@ -753,6 +768,54 @@ dd {
   color: var(--muted);
 }
 
+.price-panel {
+  align-items: center;
+  background: rgba(17, 19, 22, 0.04);
+  border: 1px solid rgba(213, 166, 66, 0.32);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px 12px;
+  grid-template-columns: auto 1fr;
+  margin: 16px 0;
+  padding: 14px;
+}
+
+.price-panel strong {
+  color: var(--red-dark);
+  font-size: clamp(1.45rem, 2.4vw, 2rem);
+  line-height: 1;
+}
+
+.price-panel > span:last-child {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+  grid-column: 2;
+}
+
+.price-panel s {
+  color: color-mix(in srgb, var(--muted) 82%, transparent);
+}
+
+.price-panel.compact {
+  margin: 14px 22px 10px;
+}
+
+.price-panel.compact strong {
+  font-size: 1.35rem;
+}
+
+.discount-badge {
+  align-self: start;
+  background: linear-gradient(135deg, var(--red), var(--plum));
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 5px 10px;
+  text-transform: uppercase;
+}
+
 .listing-specs {
   display: grid;
   gap: 0;
@@ -765,12 +828,104 @@ dd {
   padding: 12px 12px 12px 0;
 }
 
+.admin-shell {
+  display: grid;
+  gap: 28px;
+}
+
+.admin-grid {
+  display: grid;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.8fr);
+}
+
+.admin-form {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 22px;
+}
+
+.admin-form.narrow {
+  max-width: 460px;
+}
+
+.admin-form h2,
+.admin-form .button,
+.admin-form .full,
+.admin-form.narrow label {
+  grid-column: 1 / -1;
+}
+
+.admin-form h2 {
+  color: var(--navy);
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  margin: 0;
+}
+
+.admin-form label {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.82rem;
+  font-weight: 800;
+  gap: 8px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.admin-form input,
+.admin-form select,
+.admin-form textarea {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  font: inherit;
+  letter-spacing: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  text-transform: none;
+  width: 100%;
+}
+
+.admin-form textarea {
+  min-height: 108px;
+  resize: vertical;
+}
+
+.admin-form input[type='file'] {
+  padding: 8px;
+}
+
+.form-message,
+.form-error {
+  border-radius: 6px;
+  font-weight: 800;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+.form-message {
+  background: #e8f7ef;
+  color: #146c43;
+}
+
+.form-error {
+  background: #fdecec;
+  color: #9f1c1c;
+}
+
 .table-row {
   align-items: center;
   display: grid;
   gap: 16px;
-  grid-template-columns: 86px 0.55fr 0.55fr 1.8fr 0.8fr 1fr 1fr;
-  min-width: 940px;
+  grid-template-columns: 86px 0.5fr 0.5fr 1.65fr 1fr 0.75fr 1fr 1fr;
+  min-width: 1060px;
   padding: 18px 22px;
 }
 
@@ -797,6 +952,21 @@ dd {
   font-size: 0.82rem;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.table-price strong,
+.table-price small {
+  display: block;
+}
+
+.table-price strong {
+  color: var(--red-dark);
+}
+
+.table-price small {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
 .contact-grid {
@@ -828,16 +998,92 @@ dd {
     grid-template-columns: 1fr auto;
   }
 
+  .brand {
+    min-width: 0;
+    padding-right: 56px;
+  }
+
+  .brand-logo {
+    flex: 0 0 auto;
+  }
+
+  .brand-copy {
+    min-width: 0;
+  }
+
+  .brand-copy strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .menu-toggle {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(213, 166, 66, 0.34);
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 5px;
+    height: 44px;
+    justify-content: center;
+    justify-self: end;
+    padding: 0;
+    position: absolute;
+    right: clamp(18px, 4vw, 56px);
+    top: 16px;
+    width: 44px;
+  }
+
+  .menu-toggle span {
+    background: #fff;
+    border-radius: 999px;
+    display: block;
+    height: 2px;
+    transition:
+      opacity 180ms ease,
+      transform 180ms ease;
+    width: 20px;
+  }
+
+  .menu-open .menu-toggle span:first-child {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .menu-open .menu-toggle span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .menu-open .menu-toggle span:last-child {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
   .primary-nav {
+    display: none;
     grid-column: 1 / -1;
-    justify-content: flex-start;
-    overflow-x: auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow-x: visible;
     padding-bottom: 2px;
+  }
+
+  .menu-open .primary-nav {
+    display: grid;
+  }
+
+  .site-header:not(.menu-open) .header-action {
+    display: none;
+  }
+
+  .menu-open .header-action {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 
   .section-grid,
   .info-layout,
   .seller-layout,
+  .admin-grid,
   .listing-card {
     grid-template-columns: 1fr;
   }
@@ -849,6 +1095,10 @@ dd {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .admin-form {
+    grid-template-columns: 1fr;
+  }
+
   .listing-card img {
     min-height: 260px;
   }
@@ -857,21 +1107,30 @@ dd {
 @media (max-width: 680px) {
   .site-header {
     gap: 12px;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr auto;
     padding: 12px 16px;
   }
 
   .brand {
     min-width: 0;
+    padding-right: 56px;
+  }
+
+  .brand-copy {
+    min-width: 0;
   }
 
   .brand-logo {
+    flex: 0 0 auto;
     height: 44px;
     width: 44px;
   }
 
   .brand-copy strong {
     font-size: 0.92rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .brand-copy small {
@@ -881,6 +1140,48 @@ dd {
   .header-action {
     padding-inline: 12px;
     width: 100%;
+  }
+
+  .menu-toggle {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(213, 166, 66, 0.34);
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 5px;
+    height: 44px;
+    justify-content: center;
+    justify-self: end;
+    padding: 0;
+    position: absolute;
+    right: 16px;
+    top: 12px;
+    width: 44px;
+  }
+
+  .menu-toggle span {
+    background: #fff;
+    border-radius: 999px;
+    display: block;
+    height: 2px;
+    transition:
+      opacity 180ms ease,
+      transform 180ms ease;
+    width: 20px;
+  }
+
+  .menu-open .menu-toggle span:first-child {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .menu-open .menu-toggle span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .menu-open .menu-toggle span:last-child {
+    transform: translateY(-7px) rotate(-45deg);
   }
 
   .hero-section {
@@ -903,12 +1204,25 @@ dd {
   }
 
   .primary-nav {
-    display: grid;
+    display: none;
     gap: 6px;
+    grid-column: 1 / -1;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     overflow-x: visible;
     scrollbar-width: none;
     width: 100%;
+  }
+
+  .menu-open .primary-nav {
+    display: grid;
+  }
+
+  .site-header:not(.menu-open) .header-action {
+    display: none;
+  }
+
+  .menu-open .header-action {
+    grid-column: 1 / -1;
   }
 
   .primary-nav::-webkit-scrollbar {
@@ -935,8 +1249,20 @@ dd {
     grid-template-columns: 1fr;
   }
 
+  .admin-form {
+    padding: 18px;
+  }
+
   .inventory-table {
     overflow-x: auto;
+  }
+
+  .listing-specs {
+    grid-template-columns: 1fr;
+  }
+
+  .listing-specs div {
+    padding-right: 0;
   }
 
   .site-footer {

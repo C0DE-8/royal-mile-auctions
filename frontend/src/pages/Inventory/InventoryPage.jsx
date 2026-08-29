@@ -1,6 +1,47 @@
+import { useEffect, useState } from 'react'
+import { fetchAuctionItems } from '../../api/auctionItems.js'
 import { featuredVehicles } from '../../data/siteData.js'
 
+const inventoryTabs = ['All', 'Cars', 'Trucks', 'SUVs']
+const discountRate = 0.6
+const priceFormatter = new Intl.NumberFormat('en-US', {
+  currency: 'USD',
+  maximumFractionDigits: 0,
+  style: 'currency',
+})
+
+const getAuctionPrice = (mainPrice) => Math.round(mainPrice * (1 - discountRate))
+
 function InventoryPage() {
+  const [activeTab, setActiveTab] = useState('All')
+  const [auctionItems, setAuctionItems] = useState(featuredVehicles)
+  const [loadError, setLoadError] = useState('')
+  const visibleVehicles =
+    activeTab === 'All'
+      ? auctionItems
+      : auctionItems.filter((vehicle) => vehicle.category === activeTab)
+
+  useEffect(() => {
+    let isMounted = true
+
+    fetchAuctionItems()
+      .then((items) => {
+        if (isMounted) {
+          setAuctionItems(items)
+          setLoadError('')
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setLoadError('Showing sample inventory because the backend is unavailable.')
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
   return (
     <section className="page-shell">
       <div className="page-intro compact">
@@ -13,14 +54,23 @@ function InventoryPage() {
       </div>
 
       <div className="inventory-toolbar">
-        <button type="button">All</button>
-        <button type="button">Cars</button>
-        <button type="button">Trucks</button>
-        <button type="button">SUVs</button>
+        {inventoryTabs.map((tab) => (
+          <button
+            className={activeTab === tab ? 'active' : undefined}
+            type="button"
+            aria-pressed={activeTab === tab}
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
 
+      {loadError && <p className="inventory-notice">{loadError}</p>}
+
       <div className="inventory-card-grid">
-        {featuredVehicles.map((vehicle) => (
+        {visibleVehicles.map((vehicle) => (
           <article className="listing-card reveal-card" key={vehicle.id}>
             <img
               src={vehicle.image}
@@ -34,6 +84,13 @@ function InventoryPage() {
               <h2>
                 {vehicle.year} {vehicle.make} {vehicle.model}
               </h2>
+              <div className="price-panel" aria-label="Auction pricing">
+                <span className="discount-badge">60% off</span>
+                <strong>{priceFormatter.format(getAuctionPrice(vehicle.mainPrice))}</strong>
+                <span>
+                  Main price <s>{priceFormatter.format(vehicle.mainPrice)}</s>
+                </span>
+              </div>
               <p>{vehicle.notes}</p>
               <dl className="listing-specs">
                 <div>
@@ -72,11 +129,12 @@ function InventoryPage() {
           <span role="columnheader">Lane</span>
           <span role="columnheader">Lot</span>
           <span role="columnheader">Vehicle</span>
+          <span role="columnheader">Auction Price</span>
           <span role="columnheader">Miles</span>
           <span role="columnheader">Title</span>
           <span role="columnheader">Status</span>
         </div>
-        {featuredVehicles.map((vehicle) => (
+        {visibleVehicles.map((vehicle) => (
           <div className="table-row reveal-card" role="row" key={vehicle.lane}>
             <span role="cell">
               <img
@@ -89,6 +147,10 @@ function InventoryPage() {
             <span role="cell">{vehicle.lot}</span>
             <span role="cell">
               {vehicle.year} {vehicle.make} {vehicle.model}
+            </span>
+            <span role="cell" className="table-price">
+              <strong>{priceFormatter.format(getAuctionPrice(vehicle.mainPrice))}</strong>
+              <small>60% off {priceFormatter.format(vehicle.mainPrice)}</small>
             </span>
             <span role="cell">{vehicle.miles}</span>
             <span role="cell">{vehicle.title}</span>
