@@ -36,6 +36,10 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true })
 })
 
+app.get('/', (req, res) => {
+  res.json({ ok: true })
+})
+
 app.use('/api/auth', authRouter)
 app.use('/api/admin', adminRouter)
 app.use('/api/auction-items', auctionItemsRouter)
