@@ -14,6 +14,7 @@ const priceFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
   style: 'currency',
 })
+const minimumBidIncrement = 100
 
 const defaultLogin = {
   email: 'buyer@example.com',
@@ -60,6 +61,14 @@ function BidPage() {
     () => itemBids.reduce((highest, bid) => Math.max(highest, Number(bid.amount || 0)), 0),
     [itemBids],
   )
+  const buyerLastBid = useMemo(
+    () => itemBids
+      .filter((bid) => bid.is_current_user)
+      .reduce((highest, bid) => Math.max(highest, Number(bid.amount || 0)), 0),
+    [itemBids],
+  )
+  const minimumNextBid = currentHighBid > 0 ? currentHighBid + minimumBidIncrement : minimumBidIncrement
+  const suggestedBid = Math.max(minimumNextBid, buyerLastBid + minimumBidIncrement)
 
   useEffect(() => {
     fetchAuctionItems()
@@ -156,6 +165,12 @@ function BidPage() {
     setMessage('')
 
     try {
+      const amount = Number(bidAmount)
+      if (!Number.isFinite(amount) || amount < minimumNextBid) {
+        setError(`Bid must be at least ${priceFormatter.format(minimumNextBid)}.`)
+        return
+      }
+
       await createBid(auth.token, selectedItemId, bidAmount)
       setItemBids(await fetchAuctionItemBids(auth.token, selectedItemId))
       setBidAmount('')
@@ -259,10 +274,30 @@ function BidPage() {
                 <span>Current high bid</span>
                 <strong>{currentHighBid ? priceFormatter.format(currentHighBid) : 'No bids yet'}</strong>
               </div>
+              <div className="bid-helper-grid">
+                <div>
+                  <span>Your last bid</span>
+                  <strong>{buyerLastBid ? priceFormatter.format(buyerLastBid) : 'None yet'}</strong>
+                </div>
+                <div>
+                  <span>Minimum next bid</span>
+                  <strong>{priceFormatter.format(minimumNextBid)}</strong>
+                </div>
+              </div>
               <label>
                 Bid amount
-                <input value={bidAmount} onChange={(event) => setBidAmount(event.target.value)} required />
+                <input
+                  type="number"
+                  min={minimumNextBid}
+                  step={minimumBidIncrement}
+                  value={bidAmount}
+                  onChange={(event) => setBidAmount(event.target.value)}
+                  required
+                />
               </label>
+              <button className="button secondary dark" type="button" onClick={() => setBidAmount(String(suggestedBid))}>
+                Use suggested bid {priceFormatter.format(suggestedBid)}
+              </button>
               <button className="button primary" type="submit" disabled={isSubmitting || !selectedItemId}>
                 {isSubmitting ? 'Submitting...' : 'Submit bid'}
               </button>

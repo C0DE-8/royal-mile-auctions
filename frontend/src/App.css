@@ -1651,12 +1651,28 @@ dd {
   padding: 14px;
 }
 
+.bid-helper-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bid-helper-grid div {
+  background: rgba(17, 19, 22, 0.035);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+
 .bid-summary span,
-.bid-summary strong {
+.bid-summary strong,
+.bid-helper-grid span,
+.bid-helper-grid strong {
   display: block;
 }
 
-.bid-summary span {
+.bid-summary span,
+.bid-helper-grid span {
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 900;
@@ -1664,11 +1680,17 @@ dd {
   text-transform: uppercase;
 }
 
-.bid-summary strong {
+.bid-summary strong,
+.bid-helper-grid strong {
   color: var(--red-dark);
   font-size: 1.75rem;
   line-height: 1.1;
   margin-top: 4px;
+}
+
+.bid-helper-grid strong {
+  color: var(--ink);
+  font-size: 1.12rem;
 }
 
 .flow-grid {
@@ -2271,6 +2293,10 @@ dd {
 
   .vehicle-thumbnails {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bid-helper-grid {
+    grid-template-columns: 1fr;
   }
 
   .detail-specs div {

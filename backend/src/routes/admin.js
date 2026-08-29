@@ -120,6 +120,50 @@ router.post('/bids/demo', asyncRoute(async (req, res) => {
   res.status(201).json({ data: rows[0] })
 }))
 
+router.post('/auction-items/:id/close', asyncRoute(async (req, res) => {
+  const auctionItemId = Number(req.params.id)
+  const existing = await findAuctionItem(auctionItemId)
+
+  if (!existing) {
+    res.status(404).json({ error: 'Auction item not found.' })
+    return
+  }
+
+  const bids = await query(
+    `SELECT b.*, u.name AS bidder_name, u.email AS bidder_email
+     FROM bids b
+     JOIN users u ON u.id = b.user_id
+     WHERE b.auction_item_id = ?
+     ORDER BY b.amount DESC, b.created_at ASC, b.id ASC;`,
+    [auctionItemId],
+  )
+
+  if (!bids[0]) {
+    res.status(400).json({ error: 'Cannot close an auction with no bids.' })
+    return
+  }
+
+  const winningBid = bids[0]
+  await run('UPDATE bids SET status = ? WHERE auction_item_id = ?;', ['lost', auctionItemId])
+  await run('UPDATE bids SET status = ? WHERE id = ?;', ['won', winningBid.id])
+  await run('UPDATE auction_items SET item_status = ?, is_active = ? WHERE id = ?;', [
+    `Closed - won by ${winningBid.bidder_name}`,
+    0,
+    auctionItemId,
+  ])
+
+  const item = await findAuctionItem(auctionItemId)
+  res.json({
+    data: {
+      item: toAuctionItem(item),
+      winningBid: {
+        ...winningBid,
+        status: 'won',
+      },
+    },
+  })
+}))
+
 router.post('/auction-items', uploadTo('auction-items'), upload.fields([
   { name: 'image', maxCount: 1 },
   { name: 'images', maxCount: 12 },

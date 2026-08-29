@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   adminLogin,
+  closeAuctionItem,
   createDemoBid,
   createAuctionItem,
   createCryptoWallet,
@@ -453,6 +454,29 @@ function AdminPage() {
     }
   }
 
+  const handleCloseAuction = async () => {
+    if (!bidVehicleFilter) {
+      showError('Choose one vehicle before closing an auction.')
+      return
+    }
+
+    const item = auctionItems.find((auctionItem) => String(auctionItem.id) === String(bidVehicleFilter))
+    if (!item || !window.confirm(`Close auction for ${item.title}? Highest bid will win.`)) {
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const result = await closeAuctionItem(auth.token, bidVehicleFilter)
+      await refreshAdminData(auth.token)
+      showSuccess(`${result.winningBid.bidder_name} won ${result.item.title} at ${priceFormatter.format(Number(result.winningBid.amount))}.`)
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   const startVehicleEdit = (item) => {
     setVehicle(vehicleToForm(item))
     setVehicleImage(null)
@@ -774,6 +798,16 @@ function AdminPage() {
                 ))}
               </select>
             </label>
+            <div className="admin-row-actions">
+              <button
+                type="button"
+                className="danger"
+                disabled={!bidVehicleFilter || isSubmitting}
+                onClick={handleCloseAuction}
+              >
+                Close selected auction
+              </button>
+            </div>
             <div className="admin-list">
               {isLoading && <SkeletonList type="text" />}
               {!isLoading && filteredBids.map((bid) => (

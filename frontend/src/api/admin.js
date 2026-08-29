@@ -77,6 +77,17 @@ export async function createDemoBid(token, form) {
   }
 }
 
+export async function closeAuctionItem(token, id) {
+  try {
+    const response = await axiosInstance.post(`/api/admin/auction-items/${id}/close`, {}, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return response.data.data
+  } catch (error) {
+    throw new Error(error.response?.data?.error || 'Unable to close auction.', { cause: error })
+  }
+}
+
 export async function createCryptoWallet(token, formData) {
   try {
     const response = await axiosInstance.post('/api/admin/crypto-wallets', formData, {
