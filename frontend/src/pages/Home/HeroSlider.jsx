@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 
 function HeroSlider({ slides }) {
   const [activeSlide, setActiveSlide] = useState(0)
+  const activeContent = slides[activeSlide]
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -16,19 +17,38 @@ function HeroSlider({ slides }) {
     <section className="hero-section" aria-label="Auction highlights">
       <div className="hero-slides">
         {slides.map((slide, index) => (
-          <img
-            key={slide.title}
-            className={index === activeSlide ? 'active' : undefined}
-            src={slide.image}
-            alt={slide.alt}
-          />
+          slide.video ? (
+            <video
+              key={slide.title}
+              className={index === activeSlide ? 'active' : undefined}
+              poster={slide.image}
+              autoPlay
+              muted
+              loop
+              playsInline
+              aria-label={slide.alt}
+            >
+              <source src={slide.video} type="video/mp4" />
+            </video>
+          ) : (
+            <img
+              key={slide.title}
+              className={index === activeSlide ? 'active' : undefined}
+              src={slide.image}
+              alt={slide.alt}
+            />
+          )
         ))}
       </div>
 
-      <div className="hero-overlay">
-        <p className="eyebrow">{slides[activeSlide].eyebrow}</p>
-        <h1>{slides[activeSlide].title}</h1>
-        <p>{slides[activeSlide].copy}</p>
+      <div className={`hero-overlay ${activeContent.hideText ? 'actions-only' : ''}`}>
+        {!activeContent.hideText && (
+          <>
+            <p className="eyebrow">{activeContent.eyebrow}</p>
+            <h1>{activeContent.title}</h1>
+            <p>{activeContent.copy}</p>
+          </>
+        )}
         <div className="action-row">
           <Link className="button primary" to="/inventory">
             View Run List
@@ -39,17 +59,19 @@ function HeroSlider({ slides }) {
         </div>
       </div>
 
-      <div className="slider-controls" aria-label="Choose hero slide">
-        {slides.map((slide, index) => (
-          <button
-            key={slide.title}
-            type="button"
-            className={index === activeSlide ? 'active' : undefined}
-            aria-label={`Show slide ${index + 1}: ${slide.title}`}
-            onClick={() => setActiveSlide(index)}
-          />
-        ))}
-      </div>
+      {slides.length > 1 && (
+        <div className="slider-controls" aria-label="Choose hero slide">
+          {slides.map((slide, index) => (
+            <button
+              key={slide.title}
+              type="button"
+              className={index === activeSlide ? 'active' : undefined}
+              aria-label={`Show slide ${index + 1}: ${slide.title}`}
+              onClick={() => setActiveSlide(index)}
+            />
+          ))}
+        </div>
+      )}
     </section>
   )
 }

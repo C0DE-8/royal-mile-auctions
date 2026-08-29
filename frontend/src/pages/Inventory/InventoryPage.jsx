@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import auctionHero from '../../assets/auction-hero.png'
+import auctionLane from '../../assets/auction-lane.png'
+import auctionRegistration from '../../assets/auction-registration.png'
 import { fetchAuctionItems } from '../../api/auctionItems.js'
 import LazyImage from '../../components/LazyImage.jsx'
 import { featuredVehicles } from '../../data/siteData.js'
+import HeroSlider from '../Home/HeroSlider.jsx'
 
 const inventoryTabs = ['All', 'Cars', 'Trucks', 'SUVs']
 const discountRate = 0.6
@@ -14,6 +18,30 @@ const priceFormatter = new Intl.NumberFormat('en-US', {
 })
 
 const getAuctionPrice = (mainPrice) => Math.round(mainPrice * (1 - discountRate))
+
+const inventoryHeroSlides = [
+  {
+    image: auctionHero,
+    alt: 'Public auto auction lanes at sunset',
+    eyebrow: 'Pre-sale inventory',
+    title: 'Photo-first run list for this week.',
+    copy: 'Browse verified vehicles, compare lanes and lots, then open each listing for photos, notes, and bidding.',
+  },
+  {
+    image: auctionRegistration,
+    alt: 'Auto auction buyers registering at the office counter',
+    eyebrow: 'Verified buyer access',
+    title: 'Register before you place your first bid.',
+    copy: 'Create your buyer account, review the vehicle packet, and bid with clear document and payment steps.',
+  },
+  {
+    image: auctionLane,
+    alt: 'Vehicle entering a live auto auction lane',
+    eyebrow: 'Auction lane details',
+    title: 'Find the right lane before the sale opens.',
+    copy: 'Search by make, model, VIN, lane, lot, seller, drivetrain, title status, and condition notes.',
+  },
+]
 
 function InventoryPage() {
   const [activeTab, setActiveTab] = useState('All')
@@ -71,7 +99,9 @@ function InventoryPage() {
   }, [])
 
   return (
-    <section className="page-shell">
+    <>
+      <HeroSlider slides={inventoryHeroSlides} />
+      <section className="page-shell">
       <div className="page-intro compact">
         <p className="eyebrow">Pre-sale run list</p>
         <h1>Photo-first inventory for this week's auction.</h1>
@@ -232,7 +262,8 @@ function InventoryPage() {
           </div>
         ))}
       </div>
-    </section>
+      </section>
+    </>
   )
 }
 

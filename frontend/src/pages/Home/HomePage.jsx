@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import auctionHero from '../../assets/auction-hero.png'
-import auctionLane from '../../assets/auction-lane.png'
-import auctionRegistration from '../../assets/auction-registration.png'
+import heroVideo from '../../assets/hero-vid.mp4'
 import charlesStory from '../../assets/stories/Charles.png'
 import daronStory from '../../assets/stories/Daron.png'
 import joshStory from '../../assets/stories/Josh.png'
@@ -22,24 +21,12 @@ import HeroSlider from './HeroSlider.jsx'
 const heroSlides = [
   {
     image: auctionHero,
+    video: heroVideo,
     alt: 'Public auto auction lanes at sunset',
     eyebrow: 'Online public auto auction',
     title: 'Bid on verified vehicles from anywhere.',
     copy: 'A premium online auction experience with clear vehicle details, secure checkout, verified documents, and key-release confirmation.',
-  },
-  {
-    image: auctionRegistration,
-    alt: 'Auto auction buyers registering at the office counter',
-    eyebrow: 'Verified buyer accounts',
-    title: 'Register online before you place your first bid.',
-    copy: 'Create an account, review the buyer terms, and get approved to compete for cars, trucks, SUVs, and fleet units.',
-  },
-  {
-    image: auctionLane,
-    alt: 'Vehicle entering a live auto auction lane',
-    eyebrow: 'Secure winning-bid flow',
-    title: 'Confirm documents and key release before final payment.',
-    copy: 'Winning buyers receive the sale packet, invoice, and key-release confirmation before paying the full vehicle balance.',
+    hideText: true,
   },
 ]
 
