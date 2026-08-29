@@ -2,6 +2,13 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import auctionHero from '../../assets/auction-hero.png'
 import heroVideo from '../../assets/hero-vid.mp4'
+import bentleySlide from '../../assets/slides/Bentley_Continental.png'
+import challengerSlide from '../../assets/slides/Dodge_Challenger.png'
+import fordGtSlide from '../../assets/slides/Ford_GT.png'
+import murcielagoSlide from '../../assets/slides/Lamborghini_Murcielago.png'
+import packardSlide from '../../assets/slides/Packard_Twelve.png'
+import porscheSlide from '../../assets/slides/Porsche_911.png'
+import ramSlide from '../../assets/slides/Ram_1500.png'
 import charlesStory from '../../assets/stories/Charles.png'
 import daronStory from '../../assets/stories/Daron.png'
 import joshStory from '../../assets/stories/Josh.png'
@@ -38,6 +45,51 @@ const priceFormatter = new Intl.NumberFormat('en-US', {
 })
 
 const getAuctionPrice = (mainPrice) => Math.round(mainPrice * (1 - discountRate))
+
+const customCarSlides = [
+  {
+    image: ramSlide,
+    eyebrow: 'Custom truck',
+    title: 'Ram 1500',
+    copy: 'HHP 426ci Behemoth Long Block Stroker HEMI V8',
+  },
+  {
+    image: porscheSlide,
+    eyebrow: 'Performance coupe',
+    title: 'Porsche 911',
+    copy: 'Turbocharged precision with a refined auction-ready presentation',
+  },
+  {
+    image: murcielagoSlide,
+    eyebrow: 'Exotic supercar',
+    title: 'Lamborghini Murcielago',
+    copy: 'Italian V12 presence with low-slung collector appeal',
+  },
+  {
+    image: bentleySlide,
+    eyebrow: 'Grand touring',
+    title: 'Bentley Continental',
+    copy: 'Luxury touring cabin, polished road presence, premium finish',
+  },
+  {
+    image: fordGtSlide,
+    eyebrow: 'American icon',
+    title: 'Ford GT',
+    copy: 'Track-bred design with collector-grade performance styling',
+  },
+  {
+    image: challengerSlide,
+    eyebrow: 'Muscle car',
+    title: 'Dodge Challenger',
+    copy: 'Wide stance, V8 attitude, and modern street performance',
+  },
+  {
+    image: packardSlide,
+    eyebrow: 'Classic collectible',
+    title: 'Packard Twelve',
+    copy: 'Pre-war elegance with rare luxury collector character',
+  },
+]
 
 const customerStories = [
   {
@@ -80,7 +132,9 @@ const customerStories = [
 
 function HomePage() {
   const [auctionItems, setAuctionItems] = useState(featuredVehicles)
+  const [activeCustomSlide, setActiveCustomSlide] = useState(0)
   const [loadError, setLoadError] = useState('')
+  const activeSlide = customCarSlides[activeCustomSlide]
 
   useEffect(() => {
     let isMounted = true
@@ -102,6 +156,14 @@ function HomePage() {
     return () => {
       isMounted = false
     }
+  }, [])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActiveCustomSlide((current) => (current + 1) % customCarSlides.length)
+    }, 5600)
+
+    return () => window.clearInterval(timer)
   }, [])
 
   return (
@@ -165,6 +227,35 @@ function HomePage() {
                 </div>
               </dl>
             </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="showroom-section">
+        <div className="showroom-stage">
+          <div className="showroom-vehicle-media" key={activeSlide.title}>
+            <LazyImage
+              className="showroom-main-image"
+              src={activeSlide.image}
+              alt={activeSlide.title}
+            />
+          </div>
+          <article className="showroom-copy" key={`${activeSlide.title}-copy`}>
+            <span>{activeSlide.eyebrow}</span>
+            <h3>{activeSlide.title}</h3>
+            <p>{activeSlide.copy}</p>
+          </article>
+        </div>
+
+        <div className="showroom-controls" aria-label="Choose featured vehicle">
+          {customCarSlides.map((vehicle, index) => (
+            <button
+              key={vehicle.title}
+              type="button"
+              className={activeCustomSlide === index ? 'active' : undefined}
+              aria-label={`Show slide ${index + 1}`}
+              onClick={() => setActiveCustomSlide(index)}
+            />
           ))}
         </div>
       </section>

@@ -612,6 +612,124 @@ dd {
     #ebe6dc;
 }
 
+.showroom-section {
+  background: #fff;
+  overflow: hidden;
+  padding: clamp(74px, 11vw, 142px) clamp(20px, 6vw, 80px) clamp(54px, 8vw, 90px);
+}
+
+.showroom-heading {
+  max-width: 760px;
+}
+
+.showroom-stage {
+  align-items: center;
+  display: grid;
+  gap: clamp(36px, 7vw, 108px);
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  min-height: clamp(330px, 44vw, 520px);
+}
+
+.showroom-vehicle-media {
+  animation: showroom-slide-in 680ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  min-width: 0;
+}
+
+.showroom-main-image {
+  aspect-ratio: 16 / 10;
+  background: #fff;
+  filter: drop-shadow(0 24px 22px rgba(17, 19, 22, 0.1));
+  width: 100%;
+}
+
+.showroom-main-image .lazy-image-placeholder {
+  background: #fff;
+}
+
+.showroom-main-image .lazy-image-main {
+  object-fit: contain;
+}
+
+.showroom-copy {
+  animation: showroom-copy-in 680ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.showroom-copy > span {
+  color: var(--muted);
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.showroom-copy h3 {
+  font-size: clamp(2.25rem, 4.6vw, 4.1rem);
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.showroom-copy p {
+  color: var(--ink);
+  font-size: clamp(1.05rem, 1.45vw, 1.28rem);
+  max-width: 560px;
+}
+
+.showroom-meta {
+  color: var(--steel) !important;
+  font-weight: 800;
+}
+
+.showroom-controls {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: clamp(18px, 4vw, 34px);
+}
+
+.showroom-controls button {
+  background: rgba(17, 19, 22, 0.32);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  height: 10px;
+  padding: 0;
+  transition:
+    background 180ms ease,
+    width 180ms ease;
+  width: 24px;
+}
+
+.showroom-controls button.active {
+  background: var(--blue);
+  width: 34px;
+}
+
+@keyframes showroom-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-58px) scale(0.96);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes showroom-copy-in {
+  0% {
+    opacity: 0;
+    transform: translateX(42px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .customer-stories-section {
   background:
     linear-gradient(135deg, rgba(18, 63, 104, 0.08), transparent 34%),
@@ -2156,8 +2274,14 @@ dd {
   .vehicle-detail-grid,
   .detail-page-skeleton,
   .dashboard-action-grid,
-  .bid-page-layout {
+  .bid-page-layout,
+  .showroom-stage {
     grid-template-columns: 1fr;
+  }
+
+  .showroom-stage {
+    gap: 18px;
+    min-height: 0;
   }
 
   .admin-dashboard-head .button {
@@ -2303,6 +2427,30 @@ dd {
 
   .hero-overlay p:not(.eyebrow) {
     max-width: 21rem;
+  }
+
+  .showroom-section {
+    padding-inline: 20px;
+  }
+
+  .showroom-copy h3 {
+    font-size: 2rem;
+  }
+
+  .showroom-copy p {
+    font-size: 0.95rem;
+  }
+
+  .showroom-main-image {
+    aspect-ratio: 4 / 3;
+  }
+
+  .showroom-controls {
+    gap: 8px;
+  }
+
+  .showroom-controls button {
+    width: 20px;
   }
 
   .primary-nav {
@@ -2534,7 +2682,9 @@ dd {
 
   .preloader,
   .preloader-mark,
-  .lazy-image-placeholder img {
+  .lazy-image-placeholder img,
+  .showroom-vehicle-media,
+  .showroom-copy {
     animation: none;
   }
 
@@ -2543,7 +2693,9 @@ dd {
   .reveal-card.is-visible:hover,
   .customer-story-card,
   .customer-story-card.is-visible,
-  .customer-story-card.is-visible:hover {
+  .customer-story-card.is-visible:hover,
+  .showroom-vehicle-media,
+  .showroom-copy {
     opacity: 1;
     transform: none;
   }
