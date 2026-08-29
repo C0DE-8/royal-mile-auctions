@@ -2,7 +2,7 @@ function Footer() {
   return (
     <footer className="site-footer">
       <div>
-        <strong>Metro Auto Exchange</strong>
+        <strong>Royal Mile Auctions</strong>
         <p>1280 Market Road, Wilmington, DE 19801</p>
       </div>
       <div>

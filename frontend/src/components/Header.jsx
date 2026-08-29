@@ -5,8 +5,8 @@ function Header() {
   return (
     <header className="site-header">
       <Link className="brand" to="/" aria-label="Royal Mile Auctions home">
-        <img className="brand-logo" src="/royal-mile-logo.png" alt="" />
-        <span>
+        <img className="brand-logo" src="/favicon.png" alt="" />
+        <span className="brand-copy">
           <strong>Royal Mile Auctions</strong>
           <small>Online Auto Auction</small>
         </span>

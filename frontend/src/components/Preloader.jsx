@@ -18,10 +18,10 @@ function Preloader() {
   return (
     <div className="preloader" role="status" aria-label="Loading auction site">
       <div className="preloader-mark">
-        <img src="/brand-mark.svg" alt="" />
+        <img src="/royal-mile-logo.png" alt="" />
       </div>
       <div className="preloader-copy">
-        <strong>Metro Auto Exchange</strong>
+        <strong>Royal Mile Auctions</strong>
         <span>Preparing the auction floor</span>
       </div>
     </div>
