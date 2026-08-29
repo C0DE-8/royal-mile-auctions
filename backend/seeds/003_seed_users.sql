@@ -14,7 +14,7 @@ INSERT INTO users (
 ),
 (
   'Sample Buyer',
-  'buyer@example.com',
+  'info@royalmileauctions.com',
   '$2b$10$OU0fRRCuCmvakfqOlzKfseydcHtCBiRWKLebsuqlLFi3zW6YdSmRG',
   'user',
   '(302) 555-0199'

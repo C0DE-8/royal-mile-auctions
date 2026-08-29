@@ -20,7 +20,7 @@ const priceFormatter = new Intl.NumberFormat('en-US', {
 })
 
 const defaultLogin = {
-  email: 'buyer@example.com',
+  email: 'info@royalmileauctions.com',
   password: 'UserPass123!',
 }
 

@@ -18,7 +18,7 @@ const priceFormatter = new Intl.NumberFormat('en-US', {
 const minimumBidIncrement = 100
 
 const defaultLogin = {
-  email: 'buyer@example.com',
+  email: 'info@royalmileauctions.com',
   password: 'UserPass123!',
 }
 

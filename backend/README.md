@@ -46,7 +46,7 @@ Seed admin login:
 
 Seed buyer login:
 
-- Email: `buyer@example.com`
+- Email: `info@royalmileauctions.com`
 - Password: `UserPass123!`
 
 ## User Routes

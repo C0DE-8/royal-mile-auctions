@@ -11,7 +11,7 @@ function Footer() {
       </div>
       <div>
         <strong>Office</strong>
-        <p>(302) 555-0188 · buyers@metroauto.example</p>
+        <p>(302) 555-0188 · info@royalmileauctions.com</p>
       </div>
     </footer>
   )
