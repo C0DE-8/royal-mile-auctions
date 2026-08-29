@@ -5,9 +5,16 @@ backend/uploads/*
 backend/uploads/auction-items/*
 !backend/uploads/auction-items/seed-vehicle-camry.png
 !backend/uploads/auction-items/seed-vehicle-crv.png
+!backend/uploads/auction-items/seed-vehicle-ferrari-roma.png
 !backend/uploads/auction-items/seed-vehicle-f150.png
+!backend/uploads/auction-items/seed-vehicle-lamborghini-urus.png
+!backend/uploads/auction-items/seed-vehicle-mercedes-g63.png
+!backend/uploads/auction-items/seed-vehicle-rolls-royce-cullinan.png
 !backend/uploads/auction-items/seed-vehicle-silverado.png
 !backend/uploads/wallet-qr/
 backend/uploads/wallet-qr/*
+!backend/uploads/wallet-qr/sample-btc-qr.png
+!backend/uploads/wallet-qr/sample-eth-qr.png
+!backend/uploads/wallet-qr/sample-usdt-qr.png
 *.log
 .DS_Store

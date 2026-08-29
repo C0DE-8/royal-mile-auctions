@@ -46,6 +46,7 @@ const getAuctionPrice = (mainPrice) => Math.round(mainPrice * (1 - discountRate)
 
 function HomePage() {
   const [auctionItems, setAuctionItems] = useState(featuredVehicles)
+  const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
     let isMounted = true
@@ -54,11 +55,13 @@ function HomePage() {
       .then((items) => {
         if (isMounted) {
           setAuctionItems(items.slice(0, 4))
+          setLoadError('')
         }
       })
       .catch(() => {
         if (isMounted) {
           setAuctionItems(featuredVehicles)
+          setLoadError('Showing sample vehicles because live inventory is unavailable.')
         }
       })
 
@@ -89,6 +92,7 @@ function HomePage() {
             photos, VIN details, title status, fees, seller notes, document
             confirmation, and secure payment steps.
           </p>
+          {loadError && <p className="site-alert warning">{loadError}</p>}
         </div>
         <div className="vehicle-grid">
           {auctionItems.map((vehicle) => (
