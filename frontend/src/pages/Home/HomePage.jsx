@@ -3,7 +3,14 @@ import { Link } from 'react-router-dom'
 import auctionHero from '../../assets/auction-hero.png'
 import auctionLane from '../../assets/auction-lane.png'
 import auctionRegistration from '../../assets/auction-registration.png'
+import charlesStory from '../../assets/stories/Charles.png'
+import daronStory from '../../assets/stories/Daron.png'
+import joshStory from '../../assets/stories/Josh.png'
+import mattStory from '../../assets/stories/Matt.png'
+import morganStory from '../../assets/stories/Morgan.png'
+import ryanStory from '../../assets/stories/Ryan.png'
 import { fetchAuctionItems } from '../../api/auctionItems.js'
+import LazyImage from '../../components/LazyImage.jsx'
 import {
   auctionStats,
   auctionSteps,
@@ -44,6 +51,45 @@ const priceFormatter = new Intl.NumberFormat('en-US', {
 })
 
 const getAuctionPrice = (mainPrice) => Math.round(mainPrice * (1 - discountRate))
+
+const customerStories = [
+  {
+    name: 'Charles',
+    image: charlesStory,
+    vehicle: 'Mercedes-Benz G-Class',
+    quote: 'The listing had the photos and title notes I needed before placing a serious bid.',
+  },
+  {
+    name: 'Morgan',
+    image: morganStory,
+    vehicle: 'Porsche 911',
+    quote: 'The online bid flow was simple, and the document confirmation made the purchase feel organized.',
+  },
+  {
+    name: 'Ryan',
+    image: ryanStory,
+    vehicle: 'Ferrari Roma',
+    quote: 'I could compare inventory fast and follow the auction without calling the office every hour.',
+  },
+  {
+    name: 'Daron',
+    image: daronStory,
+    vehicle: 'Lamborghini Urus',
+    quote: 'The vehicle detail page gave me enough confidence to bid from out of state.',
+  },
+  {
+    name: 'Josh',
+    image: joshStory,
+    vehicle: 'Ford F-150',
+    quote: 'Payment steps were clear after winning, and the dashboard kept everything in one place.',
+  },
+  {
+    name: 'Matt',
+    image: mattStory,
+    vehicle: 'Cadillac XLR',
+    quote: 'The auction price, photos, and sale notes were easy to scan before I made my move.',
+  },
+]
 
 function HomePage() {
   const [auctionItems, setAuctionItems] = useState(featuredVehicles)
@@ -104,7 +150,7 @@ function HomePage() {
               className="vehicle-card reveal-card"
               key={`${vehicle.year}-${vehicle.lane}`}
             >
-              <img
+              <LazyImage
                 className="vehicle-card-image"
                 src={vehicle.image}
                 alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
@@ -147,6 +193,29 @@ function HomePage() {
               <span>{String(index + 1).padStart(2, '0')}</span>
               <h3>{step.title}</h3>
               <p>{step.copy}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="customer-stories-section">
+        <div className="section-heading">
+          <p className="eyebrow">Customer stories</p>
+          <h2>Buyers who found the right lane online.</h2>
+        </div>
+        <div className="customer-story-grid">
+          {customerStories.map((story) => (
+            <article className="customer-story-card reveal-card" key={story.name}>
+              <LazyImage
+                className="customer-story-image"
+                src={story.image}
+                alt={`${story.name} customer story`}
+              />
+              <div>
+                <strong>{story.name}</strong>
+                <span>{story.vehicle}</span>
+                <p>{story.quote}</p>
+              </div>
             </article>
           ))}
         </div>

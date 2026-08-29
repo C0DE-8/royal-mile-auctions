@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchAuctionItems } from '../../api/auctionItems.js'
+import LazyImage from '../../components/LazyImage.jsx'
 import {
   buyerLogin,
   buyerRegister,
@@ -246,7 +247,7 @@ function DashboardPage() {
           <div className="dashboard-vehicle-list">
             {recentItems.map((item) => (
               <article className="buyer-selected-item" key={item.id}>
-                <img src={item.image} alt={`${item.year} ${item.make} ${item.model}`} />
+                <LazyImage src={item.image} alt={`${item.year} ${item.make} ${item.model}`} />
                 <div>
                   <strong>{item.year} {item.make} {item.model}</strong>
                   <span>Lane {item.lane} | Lot {item.lot} | {priceFormatter.format(item.mainPrice)}</span>

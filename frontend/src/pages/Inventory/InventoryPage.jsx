@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchAuctionItems } from '../../api/auctionItems.js'
+import LazyImage from '../../components/LazyImage.jsx'
 import { featuredVehicles } from '../../data/siteData.js'
 
 const inventoryTabs = ['All', 'Cars', 'Trucks', 'SUVs']
@@ -120,7 +121,8 @@ function InventoryPage() {
       <div className="inventory-card-grid">
         {visibleVehicles.map((vehicle) => (
           <article className="listing-card reveal-card" key={vehicle.id}>
-            <img
+            <LazyImage
+              className="listing-card-image"
               src={vehicle.image}
               alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
             />
@@ -206,7 +208,7 @@ function InventoryPage() {
         {visibleVehicles.map((vehicle) => (
           <div className="table-row reveal-card" role="row" key={vehicle.lane}>
             <span role="cell">
-              <img
+              <LazyImage
                 className="table-thumb"
                 src={vehicle.image}
                 alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}

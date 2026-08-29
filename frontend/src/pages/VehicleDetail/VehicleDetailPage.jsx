@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { fetchAuctionItem } from '../../api/auctionItems.js'
+import LazyImage from '../../components/LazyImage.jsx'
 import { featuredVehicles } from '../../data/siteData.js'
 
 const discountRate = 0.6
@@ -121,7 +122,7 @@ function VehicleDetailPage() {
       <div className="vehicle-detail-layout">
         <div className="vehicle-gallery">
           <div className="vehicle-hero-image">
-            <img src={activeImage} alt={vehicleName} />
+            <LazyImage src={activeImage} alt={vehicleName} />
           </div>
           <div className="vehicle-thumbnails" aria-label="Vehicle photos">
             {images.map((image, index) => (
@@ -133,7 +134,7 @@ function VehicleDetailPage() {
                 aria-pressed={safeImageIndex === index}
                 onClick={() => setActiveImageIndex(index)}
               >
-                <img src={image} alt="" />
+                <LazyImage src={image} alt="" />
               </button>
             ))}
           </div>

@@ -15,6 +15,7 @@ import {
   updateAuctionItem,
   updateCryptoWallet,
 } from '../../api/admin.js'
+import LazyImage from '../../components/LazyImage.jsx'
 
 const adminTabs = ['Inventory', 'Bids', 'Wallets', 'Users']
 const pageSize = 5
@@ -711,7 +712,7 @@ function AdminPage() {
               {!isLoading && inventoryList.rows.map((item) => (
                   <article className="admin-media-item" key={item.id}>
                     {item.imageUrl && (
-                      <img src={resolveAdminAssetUrl(item.imageUrl)} alt={item.title} />
+                      <LazyImage src={resolveAdminAssetUrl(item.imageUrl)} alt={item.title} />
                     )}
                     <div>
                       <strong>{item.title}</strong>

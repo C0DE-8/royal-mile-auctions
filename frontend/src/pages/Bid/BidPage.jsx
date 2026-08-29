@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { fetchAuctionItem, fetchAuctionItems } from '../../api/auctionItems.js'
+import LazyImage from '../../components/LazyImage.jsx'
 import {
   buyerLogin,
   buyerRegister,
@@ -228,7 +229,7 @@ function BidPage() {
             </div>
           ) : selectedItem && (
             <article className="buyer-selected-item full">
-              <img src={selectedItem.image} alt={`${selectedItem.year} ${selectedItem.make} ${selectedItem.model}`} />
+              <LazyImage src={selectedItem.image} alt={`${selectedItem.year} ${selectedItem.make} ${selectedItem.model}`} />
               <div>
                 <strong>{selectedItem.year} {selectedItem.make} {selectedItem.model}</strong>
                 <span>Lane {selectedItem.lane} | Lot {selectedItem.lot} | {selectedItem.miles}</span>
