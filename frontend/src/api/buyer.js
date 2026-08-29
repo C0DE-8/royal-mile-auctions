@@ -37,6 +37,17 @@ export async function fetchBuyerBids(token) {
   }
 }
 
+export async function fetchAuctionItemBids(token, auctionItemId) {
+  try {
+    const response = await axiosInstance.get(`/api/bids/auction-item/${auctionItemId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return response.data.data
+  } catch (error) {
+    throw new Error(error.response?.data?.error || 'Unable to load vehicle bids.', { cause: error })
+  }
+}
+
 export async function createBid(token, auctionItemId, amount) {
   try {
     const response = await axiosInstance.post('/api/bids', { amount, auctionItemId }, {

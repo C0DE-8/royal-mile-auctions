@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   adminLogin,
+  createDemoBid,
   createAuctionItem,
   createCryptoWallet,
   deleteAuctionItem,
   deleteCryptoWallet,
   fetchAdminAuctionItems,
+  fetchAdminBids,
   fetchAdminCryptoWallets,
   fetchAdminUsers,
   resolveAdminAssetUrl,
@@ -13,7 +15,7 @@ import {
   updateCryptoWallet,
 } from '../../api/admin.js'
 
-const adminTabs = ['Inventory', 'Wallets', 'Users']
+const adminTabs = ['Inventory', 'Bids', 'Wallets', 'Users']
 const pageSize = 5
 
 const defaultVehicle = {
@@ -42,6 +44,14 @@ const defaultWallet = {
   currencySymbol: '',
   walletAddress: '',
   instructions: '',
+}
+
+const defaultDemoBid = {
+  auctionItemId: '',
+  bidderName: '',
+  bidderEmail: '',
+  amount: '',
+  status: 'pending',
 }
 
 const priceFormatter = new Intl.NumberFormat('en-US', {
@@ -189,17 +199,20 @@ function AdminPage() {
   })
   const [vehicle, setVehicle] = useState(defaultVehicle)
   const [wallet, setWallet] = useState(defaultWallet)
+  const [demoBid, setDemoBid] = useState(defaultDemoBid)
   const [vehicleImage, setVehicleImage] = useState(null)
   const [vehicleImages, setVehicleImages] = useState([])
   const [walletQr, setWalletQr] = useState(null)
   const [editingVehicleId, setEditingVehicleId] = useState(null)
   const [editingWalletId, setEditingWalletId] = useState(null)
   const [auctionItems, setAuctionItems] = useState([])
+  const [bids, setBids] = useState([])
   const [wallets, setWallets] = useState([])
   const [users, setUsers] = useState([])
   const [inventorySearch, setInventorySearch] = useState('')
   const [walletSearch, setWalletSearch] = useState('')
   const [userSearch, setUserSearch] = useState('')
+  const [bidVehicleFilter, setBidVehicleFilter] = useState('')
   const [inventoryPage, setInventoryPage] = useState(1)
   const [walletPage, setWalletPage] = useState(1)
   const [userPage, setUserPage] = useState(1)
@@ -239,6 +252,12 @@ function AdminPage() {
     user.isActive ? 'active' : 'inactive',
   ], userSearch)), [userSearch, users])
 
+  const filteredBids = useMemo(() => (
+    bidVehicleFilter
+      ? bids.filter((bid) => String(bid.auction_item_id) === String(bidVehicleFilter))
+      : bids
+  ), [bidVehicleFilter, bids])
+
   const inventoryList = useMemo(
     () => paginate(filteredInventory, inventoryPage),
     [filteredInventory, inventoryPage],
@@ -270,12 +289,14 @@ function AdminPage() {
 
     Promise.all([
       fetchAdminAuctionItems(auth.token),
+      fetchAdminBids(auth.token),
       fetchAdminCryptoWallets(auth.token),
       fetchAdminUsers(auth.token),
     ])
-      .then(([items, nextWallets, nextUsers]) => {
+      .then(([items, nextBids, nextWallets, nextUsers]) => {
         if (isMounted) {
           setAuctionItems(items)
+          setBids(nextBids)
           setWallets(nextWallets)
           setUsers(nextUsers)
           setAlert({ type: 'success', message: 'Admin data loaded from the backend.' })
@@ -309,12 +330,14 @@ function AdminPage() {
   }
 
   const refreshAdminData = async (token) => {
-    const [items, nextWallets, nextUsers] = await Promise.all([
+    const [items, nextBids, nextWallets, nextUsers] = await Promise.all([
       fetchAdminAuctionItems(token),
+      fetchAdminBids(token),
       fetchAdminCryptoWallets(token),
       fetchAdminUsers(token),
     ])
     setAuctionItems(items)
+    setBids(nextBids)
     setWallets(nextWallets)
     setUsers(nextUsers)
   }
@@ -325,6 +348,10 @@ function AdminPage() {
 
   const updateWallet = (event) => {
     setWallet((current) => ({ ...current, [event.target.name]: event.target.value }))
+  }
+
+  const updateDemoBid = (event) => {
+    setDemoBid((current) => ({ ...current, [event.target.name]: event.target.value }))
   }
 
   const handleLogin = async (event) => {
@@ -395,6 +422,30 @@ function AdminPage() {
       setEditingWalletId(null)
       event.target.reset()
       showSuccess(`Wallet ${editingWalletId ? 'updated' : 'created'}: ${item.walletName}.`)
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDemoBidSubmit = async (event) => {
+    event.preventDefault()
+    setIsSubmitting(true)
+    setAlert(null)
+
+    try {
+      const item = await createDemoBid(auth.token, {
+        ...demoBid,
+        auctionItemId: demoBid.auctionItemId || auctionItems[0]?.id,
+      })
+      setBids(await fetchAdminBids(auth.token))
+      setDemoBid((current) => ({
+        ...defaultDemoBid,
+        auctionItemId: current.auctionItemId,
+      }))
+      event.target.reset()
+      showSuccess(`Demo bid added for ${item.item_title}.`)
     } catch (error) {
       showError(error.message)
     } finally {
@@ -662,6 +713,80 @@ function AdminPage() {
                 onPageChange={setInventoryPage}
               />
             )}
+          </aside>
+        </div>
+      )}
+
+      {activeTab === 'Bids' && (
+        <div className="admin-workspace">
+          <form className="admin-panel admin-form" onSubmit={handleDemoBidSubmit}>
+            <div className="admin-section-head">
+              <span>Demo bidder</span>
+              <h2>Add a bid for a car</h2>
+            </div>
+            <label className="full">
+              Vehicle
+              <select
+                name="auctionItemId"
+                value={demoBid.auctionItemId || auctionItems[0]?.id || ''}
+                onChange={updateDemoBid}
+                required
+              >
+                {auctionItems.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.title} | Lane {item.lane} | Lot {item.lot}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>Bidder name<input name="bidderName" value={demoBid.bidderName} onChange={updateDemoBid} required /></label>
+            <label>Bidder email<input name="bidderEmail" type="email" value={demoBid.bidderEmail} onChange={updateDemoBid} /></label>
+            <label>Bid amount<input name="amount" value={demoBid.amount} onChange={updateDemoBid} required /></label>
+            <label>
+              Status
+              <select name="status" value={demoBid.status} onChange={updateDemoBid}>
+                <option value="pending">Pending</option>
+                <option value="winning">Winning</option>
+                <option value="outbid">Outbid</option>
+                <option value="won">Won</option>
+                <option value="lost">Lost</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </label>
+            <button className="button primary" type="submit" disabled={isSubmitting || auctionItems.length === 0}>
+              {isSubmitting ? 'Adding...' : 'Add demo bid'}
+            </button>
+          </form>
+
+          <aside className="admin-panel admin-list-panel">
+            <div className="admin-section-head">
+              <span>{filteredBids.length} of {bids.length} bids</span>
+              <h2>Car bid activity</h2>
+            </div>
+            <label className="admin-search">
+              Filter by vehicle
+              <select value={bidVehicleFilter} onChange={(event) => setBidVehicleFilter(event.target.value)}>
+                <option value="">All vehicles</option>
+                {auctionItems.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.title} | Lot {item.lot}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="admin-list">
+              {isLoading && <SkeletonList type="text" />}
+              {!isLoading && filteredBids.map((bid) => (
+                <article className="admin-bid-item" key={bid.id}>
+                  <strong>{bid.item_title}</strong>
+                  <span>{bid.bidder_name} | {bid.bidder_email}</span>
+                  <span>Lane {bid.lane} | Lot {bid.lot} | {priceFormatter.format(Number(bid.amount))} | {bid.status}</span>
+                </article>
+              ))}
+              {!isLoading && filteredBids.length === 0 && (
+                <EmptyState message="No bids match this vehicle filter." />
+              )}
+            </div>
           </aside>
         </div>
       )}

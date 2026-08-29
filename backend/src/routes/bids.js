@@ -21,6 +21,19 @@ router.get('/', asyncRoute(async (req, res) => {
   res.json({ data: rows })
 }))
 
+router.get('/auction-item/:id', asyncRoute(async (req, res) => {
+  const rows = await query(
+    `SELECT b.id, b.amount, b.status, b.created_at, u.name AS bidder_name
+     FROM bids b
+     JOIN users u ON u.id = b.user_id
+     WHERE b.auction_item_id = ?
+     ORDER BY b.amount DESC, b.created_at ASC;`,
+    [Number(req.params.id)],
+  )
+
+  res.json({ data: rows })
+}))
+
 router.post('/', asyncRoute(async (req, res) => {
   requireFields(req.body, ['auctionItemId', 'amount'])
   const result = await run(

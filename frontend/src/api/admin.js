@@ -54,6 +54,29 @@ export async function deleteAuctionItem(token, id) {
   }
 }
 
+export async function fetchAdminBids(token, auctionItemId = '') {
+  try {
+    const response = await axiosInstance.get('/api/admin/bids', {
+      headers: { Authorization: `Bearer ${token}` },
+      params: auctionItemId ? { auctionItemId } : undefined,
+    })
+    return response.data.data
+  } catch (error) {
+    throw new Error(error.response?.data?.error || 'Unable to load bids.', { cause: error })
+  }
+}
+
+export async function createDemoBid(token, form) {
+  try {
+    const response = await axiosInstance.post('/api/admin/bids/demo', form, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return response.data.data
+  } catch (error) {
+    throw new Error(error.response?.data?.error || 'Unable to create demo bid.', { cause: error })
+  }
+}
+
 export async function createCryptoWallet(token, formData) {
   try {
     const response = await axiosInstance.post('/api/admin/crypto-wallets', formData, {

@@ -63,6 +63,63 @@ router.get('/auction-items', asyncRoute(async (req, res) => {
   res.json({ data: rows.map(toAuctionItem) })
 }))
 
+router.get('/bids', asyncRoute(async (req, res) => {
+  const params = []
+  const where = []
+
+  if (req.query.auctionItemId) {
+    where.push('b.auction_item_id = ?')
+    params.push(Number(req.query.auctionItemId))
+  }
+
+  const rows = await query(
+    `SELECT
+      b.*,
+      u.name AS bidder_name,
+      u.email AS bidder_email,
+      a.title AS item_title,
+      a.lot,
+      a.lane
+    FROM bids b
+    JOIN users u ON u.id = b.user_id
+    JOIN auction_items a ON a.id = b.auction_item_id
+    ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+    ORDER BY b.created_at DESC, b.id DESC;`,
+    params,
+  )
+
+  res.json({ data: rows })
+}))
+
+router.post('/bids/demo', asyncRoute(async (req, res) => {
+  requireFields(req.body, ['auctionItemId', 'bidderName', 'amount'])
+
+  const auctionItemId = Number(req.body.auctionItemId)
+  const bidderName = req.body.bidderName.trim()
+  const email = (req.body.bidderEmail || `${bidderName.replace(/[^a-z0-9]+/gi, '.').toLowerCase()}-${Date.now()}@demo.local`)
+    .toLowerCase()
+  const passwordHash = await bcrypt.hash(`DemoBidder${Date.now()}!`, 10)
+
+  const userResult = await run(
+    'INSERT INTO users (name, email, password_hash, role, phone) VALUES (?, ?, ?, ?, ?);',
+    [bidderName, email, passwordHash, 'user', req.body.phone || null],
+  )
+  const bidResult = await run(
+    'INSERT INTO bids (user_id, auction_item_id, amount, status) VALUES (?, ?, ?, ?);',
+    [userResult.insertId, auctionItemId, Number(req.body.amount), req.body.status || 'pending'],
+  )
+  const rows = await query(
+    `SELECT b.*, u.name AS bidder_name, u.email AS bidder_email, a.title AS item_title, a.lot, a.lane
+     FROM bids b
+     JOIN users u ON u.id = b.user_id
+     JOIN auction_items a ON a.id = b.auction_item_id
+     WHERE b.id = ?;`,
+    [bidResult.insertId],
+  )
+
+  res.status(201).json({ data: rows[0] })
+}))
+
 router.post('/auction-items', uploadTo('auction-items'), upload.fields([
   { name: 'image', maxCount: 1 },
   { name: 'images', maxCount: 12 },

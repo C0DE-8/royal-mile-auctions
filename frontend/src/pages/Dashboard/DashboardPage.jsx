@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { fetchAuctionItems } from '../../api/auctionItems.js'
 import {
   buyerLogin,
   buyerRegister,
-  createBid,
   createPayment,
   fetchBuyerBids,
   fetchBuyerPayments,
@@ -30,14 +30,26 @@ const defaultRegister = {
   phone: '',
 }
 
+function readBuyerAuth() {
+  try {
+    return JSON.parse(localStorage.getItem('buyerAuth')) || null
+  } catch {
+    return null
+  }
+}
+
+function saveBuyerAuth(auth) {
+  localStorage.setItem('buyerAuth', JSON.stringify(auth))
+  localStorage.setItem('token', auth.token)
+}
+
 function DashboardPage() {
-  const [auth, setAuth] = useState(null)
+  const [auth, setAuth] = useState(() => readBuyerAuth())
   const [mode, setMode] = useState('login')
   const [login, setLogin] = useState(defaultLogin)
   const [register, setRegister] = useState(defaultRegister)
   const [items, setItems] = useState(featuredVehicles)
   const [selectedItemId, setSelectedItemId] = useState('')
-  const [bidAmount, setBidAmount] = useState('')
   const [wallets, setWallets] = useState([])
   const [payments, setPayments] = useState([])
   const [bids, setBids] = useState([])
@@ -52,10 +64,7 @@ function DashboardPage() {
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const selectedItem = useMemo(
-    () => items.find((item) => String(item.id) === String(selectedItemId)),
-    [items, selectedItemId],
-  )
+  const recentItems = items.slice(0, 4)
 
   useEffect(() => {
     fetchAuctionItems()
@@ -111,6 +120,7 @@ function DashboardPage() {
 
     try {
       const nextAuth = await buyerLogin(login.email, login.password)
+      saveBuyerAuth(nextAuth)
       setAuth(nextAuth)
       setMessage(`Welcome back, ${nextAuth.user.name}.`)
     } catch (nextError) {
@@ -128,27 +138,10 @@ function DashboardPage() {
 
     try {
       const nextAuth = await buyerRegister(register)
+      saveBuyerAuth(nextAuth)
       setAuth(nextAuth)
       setRegister(defaultRegister)
       setMessage(`Buyer account created for ${nextAuth.user.name}.`)
-    } catch (nextError) {
-      setError(nextError.message)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleBid = async (event) => {
-    event.preventDefault()
-    setIsSubmitting(true)
-    setError('')
-    setMessage('')
-
-    try {
-      await createBid(auth.token, selectedItemId, bidAmount)
-      setBids(await fetchBuyerBids(auth.token))
-      setBidAmount('')
-      setMessage('Bid submitted. Your dashboard will show status updates.')
     } catch (nextError) {
       setError(nextError.message)
     } finally {
@@ -228,40 +221,45 @@ function DashboardPage() {
           <h1>Your bids, payments, and auction items.</h1>
           <p>Signed in as {auth.user.name}</p>
         </div>
-        <button className="button secondary dark" type="button" onClick={() => setAuth(null)}>Sign out</button>
+        <button
+          className="button secondary dark"
+          type="button"
+          onClick={() => {
+            localStorage.removeItem('buyerAuth')
+            localStorage.removeItem('token')
+            setAuth(null)
+          }}
+        >
+          Sign out
+        </button>
       </div>
 
       {message && <p className="admin-alert success">{message}</p>}
       {error && <p className="admin-alert error">{error}</p>}
 
-      <div className="buyer-flow-grid">
-        <form className="admin-panel admin-form" onSubmit={handleBid}>
+      <div className="dashboard-action-grid">
+        <section className="admin-panel dashboard-overview-panel">
           <div className="admin-section-head">
-            <span>Step 1</span>
-            <h2>Place a bid</h2>
+            <span>{recentItems.length} available</span>
+            <h2>Ready to bid</h2>
           </div>
-          <label className="full">
-            Auction item
-            <select value={selectedItemId} onChange={(event) => setSelectedItemId(event.target.value)}>
-              {items.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.year} {item.make} {item.model} - {priceFormatter.format(item.mainPrice)}
-                </option>
-              ))}
-            </select>
-          </label>
-          {selectedItem && (
-            <article className="buyer-selected-item full">
-              <img src={selectedItem.image} alt={`${selectedItem.year} ${selectedItem.make} ${selectedItem.model}`} />
-              <div>
-                <strong>{selectedItem.year} {selectedItem.make} {selectedItem.model}</strong>
-                <span>Lane {selectedItem.lane} | Lot {selectedItem.lot}</span>
-              </div>
-            </article>
-          )}
-          <label className="full">Bid amount<input value={bidAmount} onChange={(event) => setBidAmount(event.target.value)} required /></label>
-          <button className="button primary" type="submit" disabled={isSubmitting}>Submit bid</button>
-        </form>
+          <div className="dashboard-vehicle-list">
+            {recentItems.map((item) => (
+              <article className="buyer-selected-item" key={item.id}>
+                <img src={item.image} alt={`${item.year} ${item.make} ${item.model}`} />
+                <div>
+                  <strong>{item.year} {item.make} {item.model}</strong>
+                  <span>Lane {item.lane} | Lot {item.lot} | {priceFormatter.format(item.mainPrice)}</span>
+                  <div className="dashboard-inline-actions">
+                    <Link className="table-action" to={`/bid/${item.id}`}>Bid</Link>
+                    <Link className="table-action" to={`/inventory/${item.id}`}>Details</Link>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+          <Link className="button primary" to="/bid">Open bid page</Link>
+        </section>
 
         <form className="admin-panel admin-form" onSubmit={handlePayment}>
           <div className="admin-section-head">

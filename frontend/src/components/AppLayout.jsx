@@ -4,6 +4,7 @@ import Header from './Header.jsx'
 import ScrollAndReveal from './ScrollAndReveal.jsx'
 import AdminPage from '../pages/Admin/AdminPage.jsx'
 import AuctionsPage from '../pages/Auctions/AuctionsPage.jsx'
+import BidPage from '../pages/Bid/BidPage.jsx'
 import BuyerInfoPage from '../pages/BuyerInfo/BuyerInfoPage.jsx'
 import ContactPage from '../pages/Contact/ContactPage.jsx'
 import DashboardPage from '../pages/Dashboard/DashboardPage.jsx'
@@ -24,6 +25,8 @@ function AppLayout() {
           <Route path="/auctions" element={<AuctionsPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/inventory/:id" element={<VehicleDetailPage />} />
+          <Route path="/bid/:id" element={<BidPage />} />
+          <Route path="/bid" element={<BidPage />} />
           <Route path="/buyers" element={<BuyerInfoPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/sell" element={<SellVehiclePage />} />

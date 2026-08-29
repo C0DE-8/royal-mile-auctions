@@ -28,6 +28,7 @@ function VehicleDetailPage() {
   const [fetchedVehicle, setFetchedVehicle] = useState(null)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [loadError, setLoadError] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     let isMounted = true
@@ -44,6 +45,11 @@ function VehicleDetailPage() {
           setLoadError({ id, message: 'Vehicle details are unavailable right now.' })
         }
       })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      })
 
     return () => {
       isMounted = false
@@ -52,6 +58,26 @@ function VehicleDetailPage() {
 
   const vehicle = fetchedVehicle?.id === id ? fetchedVehicle.item : fallbackVehicle
   const errorMessage = loadError?.id === id ? loadError.message : ''
+
+  if (isLoading && !vehicle) {
+    return (
+      <section className="page-shell vehicle-detail-shell">
+        <div className="detail-page-skeleton">
+          <div className="detail-skeleton hero" />
+          <div className="detail-skeleton panel">
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+        </div>
+        <div className="vehicle-detail-grid">
+          <div className="detail-skeleton block" />
+          <div className="detail-skeleton block" />
+        </div>
+      </section>
+    )
+  }
 
   if (!vehicle) {
     return (
@@ -129,8 +155,8 @@ function VehicleDetailPage() {
             </span>
           </div>
           <div className="vehicle-detail-actions">
-            <Link className="button primary" to="/dashboard">
-              Bid / Pay
+            <Link className="button primary" to={`/bid/${vehicle.id}`}>
+              Bid on this car
             </Link>
             <Link className="button secondary dark" to="/contact">
               Ask about this car

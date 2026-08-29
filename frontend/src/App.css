@@ -1059,6 +1059,62 @@ dd {
   margin-top: 12px;
 }
 
+.detail-page-skeleton {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.28fr) minmax(320px, 0.72fr);
+}
+
+.detail-skeleton {
+  animation: skeleton-pulse 1200ms ease-in-out infinite;
+  background:
+    linear-gradient(90deg, rgba(255, 253, 248, 0.64), rgba(213, 166, 66, 0.18), rgba(255, 253, 248, 0.64));
+  background-size: 220% 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-height: 96px;
+}
+
+.detail-skeleton.hero {
+  aspect-ratio: 16 / 10;
+}
+
+.detail-skeleton.panel {
+  display: grid;
+  gap: 14px;
+  padding: 24px;
+}
+
+.detail-skeleton.panel span {
+  background: rgba(17, 19, 22, 0.1);
+  border-radius: 999px;
+  display: block;
+  height: 16px;
+}
+
+.detail-skeleton.panel span:first-child {
+  width: 44%;
+}
+
+.detail-skeleton.panel span:nth-child(2) {
+  height: 36px;
+  width: 86%;
+}
+
+.detail-skeleton.block {
+  min-height: 220px;
+}
+
+@keyframes skeleton-pulse {
+  0% {
+    background-position: 120% 0;
+  }
+
+  100% {
+    background-position: -120% 0;
+  }
+}
+
 .admin-shell {
   display: grid;
   gap: 28px;
@@ -1256,7 +1312,8 @@ dd {
   text-transform: uppercase;
 }
 
-.admin-search input {
+.admin-search input,
+.admin-search select {
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -1524,10 +1581,94 @@ dd {
 
 .buyer-flow-grid,
 .dashboard-history-grid,
+.dashboard-action-grid,
+.bid-page-layout,
 .flow-grid {
   display: grid;
   gap: 20px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-action-grid {
+  align-items: start;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+
+.dashboard-overview-panel {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+}
+
+.dashboard-vehicle-list {
+  display: grid;
+  gap: 10px;
+}
+
+.dashboard-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.bid-page-layout {
+  align-items: start;
+}
+
+.bid-submit-form {
+  display: grid;
+  gap: 14px;
+}
+
+.bid-submit-form label {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.82rem;
+  font-weight: 800;
+  gap: 8px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.bid-submit-form input {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  font: inherit;
+  letter-spacing: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  text-transform: none;
+  width: 100%;
+}
+
+.bid-summary {
+  background: rgba(18, 63, 104, 0.08);
+  border: 1px solid rgba(18, 63, 104, 0.18);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.bid-summary span,
+.bid-summary strong {
+  display: block;
+}
+
+.bid-summary span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bid-summary strong {
+  color: var(--red-dark);
+  font-size: 1.75rem;
+  line-height: 1.1;
+  margin-top: 4px;
 }
 
 .flow-grid {
@@ -1812,7 +1953,10 @@ dd {
   .inventory-controls,
   .listing-card,
   .vehicle-detail-layout,
-  .vehicle-detail-grid {
+  .vehicle-detail-grid,
+  .detail-page-skeleton,
+  .dashboard-action-grid,
+  .bid-page-layout {
     grid-template-columns: 1fr;
   }
 
@@ -1988,7 +2132,8 @@ dd {
   .policy-grid,
   .step-list,
   .faq-list,
-  .contact-grid {
+  .contact-grid,
+  .dashboard-history-grid {
     grid-template-columns: 1fr;
   }
 
