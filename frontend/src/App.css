@@ -705,6 +705,74 @@ dd {
   padding: 12px 14px;
 }
 
+.inventory-controls {
+  align-items: end;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(260px, 420px) auto;
+  justify-content: space-between;
+  margin: 0 0 22px;
+}
+
+.inventory-controls label {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 900;
+  gap: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.inventory-controls input {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  font: inherit;
+  letter-spacing: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  text-transform: none;
+  width: 100%;
+}
+
+.inventory-controls span,
+.inventory-pagination span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.inventory-pagination {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  margin: 24px 0;
+}
+
+.inventory-pagination div {
+  display: flex;
+  gap: 10px;
+}
+
+.inventory-pagination button {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--steel);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  min-height: 38px;
+  padding: 8px 14px;
+}
+
+.inventory-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .site-alert {
   border-radius: 8px;
   font-weight: 800;
@@ -839,6 +907,20 @@ dd {
 .listing-specs div {
   border-top: 1px solid var(--line);
   padding: 12px 12px 12px 0;
+}
+
+.listing-action {
+  margin-top: 18px;
+}
+
+.table-action {
+  color: var(--red-dark);
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 900;
+  margin-top: 6px;
+  text-decoration: none;
+  text-transform: uppercase;
 }
 
 .admin-shell {
@@ -1254,6 +1336,108 @@ dd {
   text-transform: uppercase;
 }
 
+.dashboard-shell {
+  display: grid;
+  gap: 28px;
+}
+
+.dashboard-auth-panel {
+  display: grid;
+  gap: 18px;
+  max-width: 520px;
+}
+
+.dashboard-tabs {
+  align-items: center;
+  background: rgba(255, 253, 248, 0.74);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  width: fit-content;
+}
+
+.dashboard-tabs button {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--steel);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  min-height: 40px;
+  padding: 9px 16px;
+}
+
+.dashboard-tabs button.active {
+  background: linear-gradient(135deg, var(--blue), var(--plum));
+  color: #fff;
+}
+
+.buyer-flow-grid,
+.dashboard-history-grid,
+.flow-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.flow-grid {
+  margin-top: 20px;
+}
+
+.flow-grid article {
+  background: rgba(255, 255, 255, 0.64);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.flow-grid strong {
+  color: var(--red);
+  display: block;
+  font-size: 1.6rem;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.buyer-selected-item,
+.buyer-wallet-card {
+  align-items: center;
+  background: rgba(17, 19, 22, 0.035);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 96px minmax(0, 1fr);
+  padding: 12px;
+}
+
+.buyer-selected-item img,
+.buyer-wallet-card img {
+  aspect-ratio: 4 / 3;
+  border-radius: 6px;
+  object-fit: cover;
+  width: 96px;
+}
+
+.buyer-wallet-card img {
+  aspect-ratio: 1;
+}
+
+.buyer-selected-item strong,
+.buyer-wallet-card strong,
+.buyer-selected-item span,
+.buyer-wallet-card span {
+  display: block;
+}
+
+.buyer-wallet-card span {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
 .admin-alert {
   border-radius: 6px;
   font-weight: 800;
@@ -1476,6 +1660,9 @@ dd {
   .admin-dashboard-head,
   .admin-workspace,
   .admin-workspace.compact,
+  .buyer-flow-grid,
+  .dashboard-history-grid,
+  .inventory-controls,
   .listing-card {
     grid-template-columns: 1fr;
   }
@@ -1644,11 +1831,40 @@ dd {
   .vehicle-grid,
   .inventory-card-grid,
   .admin-summary-grid,
+  .flow-grid,
   .policy-grid,
   .step-list,
   .faq-list,
   .contact-grid {
     grid-template-columns: 1fr;
+  }
+
+  .inventory-pagination {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .inventory-pagination div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-tabs {
+    width: 100%;
+  }
+
+  .dashboard-tabs button {
+    flex: 1;
+  }
+
+  .buyer-selected-item,
+  .buyer-wallet-card {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+
+  .buyer-selected-item img,
+  .buyer-wallet-card img {
+    width: 76px;
   }
 
   .admin-tabs {

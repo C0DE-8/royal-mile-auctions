@@ -10,8 +10,22 @@ function ScrollAndReveal() {
 
   useEffect(() => {
     let observer
+    let mutationObserver
+    const observedCards = new WeakSet()
+    const observeCards = () => {
+      if (!observer) {
+        return
+      }
+
+      document.querySelectorAll('.reveal-card').forEach((card) => {
+        if (!observedCards.has(card)) {
+          observedCards.add(card)
+          observer.observe(card)
+        }
+      })
+    }
+
     const frame = window.requestAnimationFrame(() => {
-      const cards = document.querySelectorAll('.reveal-card')
       observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
@@ -24,11 +38,14 @@ function ScrollAndReveal() {
         { rootMargin: '0px 0px -12% 0px', threshold: 0.12 },
       )
 
-      cards.forEach((card) => observer.observe(card))
+      observeCards()
+      mutationObserver = new MutationObserver(observeCards)
+      mutationObserver.observe(document.body, { childList: true, subtree: true })
     })
 
     return () => {
       window.cancelAnimationFrame(frame)
+      mutationObserver?.disconnect()
       observer?.disconnect()
     }
   }, [pathname])

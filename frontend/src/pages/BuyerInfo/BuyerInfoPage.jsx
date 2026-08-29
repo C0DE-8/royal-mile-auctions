@@ -1,4 +1,5 @@
 import { faqs } from '../../data/siteData.js'
+import { Link } from 'react-router-dom'
 
 function BuyerInfoPage() {
   return (
@@ -10,6 +11,10 @@ function BuyerInfoPage() {
           Understand online registration, bidding, document confirmation,
           key-release verification, auction fees, final payment, and delivery.
         </p>
+        <div className="action-row">
+          <Link className="button primary" to="/dashboard">Open buyer dashboard</Link>
+          <Link className="button secondary" to="/inventory">Browse inventory</Link>
+        </div>
       </div>
 
       <div className="policy-grid">
@@ -61,6 +66,33 @@ function BuyerInfoPage() {
           sale, reviews the final invoice, and pays the remaining vehicle
           balance through approved payment instructions.
         </p>
+      </section>
+
+      <section className="auction-rules reveal-card">
+        <p className="eyebrow">Bidding and payment flow</p>
+        <h2>Your dashboard keeps the sale process in one place.</h2>
+        <div className="flow-grid">
+          <article>
+            <strong>1</strong>
+            <h3>Choose a vehicle</h3>
+            <p>Open the run list, review price, title status, VIN, lane, lot, and seller notes.</p>
+          </article>
+          <article>
+            <strong>2</strong>
+            <h3>Place your bid</h3>
+            <p>Sign in to the buyer dashboard and submit the amount you want reviewed by the auction team.</p>
+          </article>
+          <article>
+            <strong>3</strong>
+            <h3>Submit payment info</h3>
+            <p>Select an approved wallet, scan the QR code, and submit transaction details for review.</p>
+          </article>
+          <article>
+            <strong>4</strong>
+            <h3>Track status</h3>
+            <p>Your dashboard lists your bid items and payment records while the team verifies the sale.</p>
+          </article>
+        </div>
       </section>
 
       <div className="faq-list full">

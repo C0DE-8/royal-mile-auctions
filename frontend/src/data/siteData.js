@@ -12,6 +12,7 @@ export const navItems = [
   { label: 'Auctions', route: 'auctions', path: '/auctions' },
   { label: 'Inventory', route: 'inventory', path: '/inventory' },
   { label: 'Buyer Info', route: 'buyers', path: '/buyers' },
+  { label: 'Dashboard', route: 'dashboard', path: '/dashboard' },
   { label: 'Sell', route: 'sell', path: '/sell' },
   { label: 'Contact', route: 'contact', path: '/contact' },
 ]

@@ -1,4 +1,4 @@
-const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:4000'
+import axiosInstance, { apiBaseUrl } from './axios'
 
 function resolveImageUrl(imageUrl) {
   if (!imageUrl || imageUrl.startsWith('http') || imageUrl.startsWith('data:')) {
@@ -33,12 +33,10 @@ function normalizeAuctionItem(item) {
 }
 
 export async function fetchAuctionItems() {
-  const response = await fetch(`${apiBaseUrl}/api/auction-items`)
-
-  if (!response.ok) {
-    throw new Error('Unable to load auction inventory.')
+  try {
+    const response = await axiosInstance.get('/api/auction-items')
+    return response.data.data.map(normalizeAuctionItem)
+  } catch (error) {
+    throw new Error(error.response?.data?.error || 'Unable to load auction inventory.')
   }
-
-  const payload = await response.json()
-  return payload.data.map(normalizeAuctionItem)
 }

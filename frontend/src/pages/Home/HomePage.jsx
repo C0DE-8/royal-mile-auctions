@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import auctionHero from '../../assets/auction-hero.png'
 import auctionLane from '../../assets/auction-lane.png'
 import auctionRegistration from '../../assets/auction-registration.png'
@@ -93,6 +94,9 @@ function HomePage() {
             confirmation, and secure payment steps.
           </p>
           {loadError && <p className="site-alert warning">{loadError}</p>}
+          <Link className="button primary" to="/inventory">
+            View full inventory
+          </Link>
         </div>
         <div className="vehicle-grid">
           {auctionItems.map((vehicle) => (

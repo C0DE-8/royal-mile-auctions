@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { fetchAuctionItems } from '../../api/auctionItems.js'
 import { featuredVehicles } from '../../data/siteData.js'
 
 const inventoryTabs = ['All', 'Cars', 'Trucks', 'SUVs']
 const discountRate = 0.6
+const pageSize = 6
 const priceFormatter = new Intl.NumberFormat('en-US', {
   currency: 'USD',
   maximumFractionDigits: 0,
@@ -16,10 +18,35 @@ function InventoryPage() {
   const [activeTab, setActiveTab] = useState('All')
   const [auctionItems, setAuctionItems] = useState(featuredVehicles)
   const [loadError, setLoadError] = useState('')
-  const visibleVehicles =
+  const [searchTerm, setSearchTerm] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const filteredVehicles =
     activeTab === 'All'
       ? auctionItems
       : auctionItems.filter((vehicle) => vehicle.category === activeTab)
+  const searchedVehicles = filteredVehicles.filter((vehicle) => {
+    const search = searchTerm.trim().toLowerCase()
+
+    if (!search) {
+      return true
+    }
+
+    return [
+      vehicle.year,
+      vehicle.make,
+      vehicle.model,
+      vehicle.category,
+      vehicle.lane,
+      vehicle.lot,
+      vehicle.vin,
+      vehicle.seller,
+    ]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(search))
+  })
+  const pageCount = Math.max(1, Math.ceil(searchedVehicles.length / pageSize))
+  const safePage = Math.min(currentPage, pageCount)
+  const visibleVehicles = searchedVehicles.slice((safePage - 1) * pageSize, safePage * pageSize)
 
   useEffect(() => {
     let isMounted = true
@@ -60,11 +87,32 @@ function InventoryPage() {
             type="button"
             aria-pressed={activeTab === tab}
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => {
+              setActiveTab(tab)
+              setCurrentPage(1)
+            }}
           >
             {tab}
           </button>
         ))}
+      </div>
+
+      <div className="inventory-controls">
+        <label>
+          Search inventory
+          <input
+            type="search"
+            value={searchTerm}
+            placeholder="Search make, model, lane, lot, VIN"
+            onChange={(event) => {
+              setSearchTerm(event.target.value)
+              setCurrentPage(1)
+            }}
+          />
+        </label>
+        <span>
+          Showing {visibleVehicles.length} of {searchedVehicles.length} vehicle{searchedVehicles.length === 1 ? '' : 's'}
+        </span>
       </div>
 
       {loadError && <p className="inventory-notice">{loadError}</p>}
@@ -118,10 +166,31 @@ function InventoryPage() {
                   <dd>{vehicle.vin}</dd>
                 </div>
               </dl>
+              <Link className="button primary listing-action" to="/dashboard">
+                Bid / Pay
+              </Link>
             </div>
           </article>
         ))}
       </div>
+
+      {visibleVehicles.length === 0 && (
+        <p className="inventory-notice">No vehicles match your search.</p>
+      )}
+
+      {searchedVehicles.length > pageSize && (
+        <div className="inventory-pagination">
+          <span>Page {safePage} of {pageCount}</span>
+          <div>
+            <button type="button" disabled={safePage <= 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}>
+              Previous
+            </button>
+            <button type="button" disabled={safePage >= pageCount} onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}>
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="inventory-table" role="table" aria-label="Auction inventory">
         <div className="table-row table-head" role="row">
@@ -154,7 +223,10 @@ function InventoryPage() {
             </span>
             <span role="cell">{vehicle.miles}</span>
             <span role="cell">{vehicle.title}</span>
-            <span role="cell">{vehicle.light}</span>
+            <span role="cell">
+              {vehicle.light}
+              <Link className="table-action" to="/dashboard">Bid</Link>
+            </span>
           </div>
         ))}
       </div>

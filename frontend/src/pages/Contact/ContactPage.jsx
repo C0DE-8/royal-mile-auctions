@@ -39,9 +39,9 @@ function ContactPage() {
         <article className="reveal-card">
           <h2>Buyer Desk</h2>
           <p>(302) 555-0188</p>
-          <p>buyers@metroauto.example</p>
-          <a className="button primary" href="tel:+13025550188">
-            Call Office
+          <p>info@royalmileauctions.com</p>
+          <a className="button primary" href="mailto:info@royalmileauctions.com">
+            Email Support
           </a>
         </article>
       </div>
