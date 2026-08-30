@@ -173,9 +173,12 @@
 
 .header-action,
 .button {
+  align-items: center;
   display: inline-flex;
   justify-content: center;
+  min-width: 0;
   padding: 11px 18px;
+  text-align: center;
 }
 
 .header-action:hover,
@@ -435,9 +438,11 @@ h3 {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: 0 1px 0 rgba(20, 24, 28, 0.03), 0 18px 45px rgba(17, 19, 22, 0.08);
+  min-width: 0;
 }
 
 .reveal-card {
+  min-width: 0;
   opacity: 0;
   transform: translateY(34px) scale(0.975);
   transition:
@@ -486,6 +491,7 @@ h3 {
 .vehicle-card h3,
 .vehicle-card p,
 .vehicle-card dl {
+  overflow-wrap: anywhere;
   padding-inline: 22px;
 }
 
@@ -625,6 +631,7 @@ dd {
 
 .showroom-stage {
   align-items: center;
+  --showroom-scale: 1.34;
   display: grid;
   gap: clamp(24px, 4.5vw, 78px);
   grid-template-columns: minmax(0, 1.28fr) minmax(300px, 0.72fr);
@@ -634,18 +641,18 @@ dd {
 }
 
 .showroom-vehicle-media {
-  animation: showroom-slide-in 680ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: showroom-slide-left 780ms cubic-bezier(0.18, 0.78, 0.22, 1);
   min-width: 0;
   overflow: visible;
+  will-change: opacity, transform;
 }
 
 .showroom-main-image {
-  animation: showroom-image-fade 720ms cubic-bezier(0.2, 0.8, 0.2, 1);
   aspect-ratio: 16 / 8;
   display: block;
   filter: drop-shadow(0 24px 18px rgba(17, 19, 22, 0.08));
   object-fit: contain;
-  transform: scale(1.34);
+  transform: scale(var(--showroom-scale));
   transform-origin: center left;
   width: 100%;
 }
@@ -734,27 +741,15 @@ dd {
   width: 34px;
 }
 
-@keyframes showroom-slide-in {
+@keyframes showroom-slide-left {
   0% {
     opacity: 0;
-    transform: translateX(-58px) scale(0.96);
+    transform: translateX(82px);
   }
 
   100% {
     opacity: 1;
-    transform: translateX(0) scale(1);
-  }
-}
-
-@keyframes showroom-image-fade {
-  0% {
-    opacity: 0;
-    transform: translateX(-34px) scale(1.02);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateX(0) scale(1.34);
+    transform: translateX(0);
   }
 }
 
@@ -1154,7 +1149,7 @@ dd {
 .inventory-card-grid {
   display: grid;
   gap: 24px;
-  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr));
 }
 
 .listing-card {
@@ -1164,6 +1159,7 @@ dd {
   border-radius: var(--radius);
   display: grid;
   grid-template-rows: auto 1fr;
+  min-width: 0;
   overflow: hidden;
   position: relative;
   transition:
@@ -1206,6 +1202,7 @@ dd {
 .listing-card-body {
   display: grid;
   grid-template-rows: auto auto auto 1fr auto;
+  min-width: 0;
   padding: 24px;
 }
 
@@ -1229,6 +1226,7 @@ dd {
 .listing-card h2 {
   font-size: clamp(1.35rem, 2.2vw, 2rem);
   margin-bottom: 10px;
+  overflow-wrap: anywhere;
 }
 
 .listing-card p {
@@ -1303,8 +1301,14 @@ dd {
 .listing-actions {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(min(100%, 150px), 1fr));
   margin-top: 18px;
+}
+
+.listing-actions .button {
+  min-width: 0;
+  text-align: center;
+  white-space: normal;
 }
 
 .table-action {
@@ -2403,10 +2407,10 @@ dd {
   .showroom-stage {
     gap: 20px;
     min-height: 0;
+    --showroom-scale: 1.18;
   }
 
   .showroom-main-image {
-    transform: scale(1.05);
     transform-origin: center;
   }
 
@@ -2559,7 +2563,16 @@ dd {
   }
 
   .showroom-section {
-    padding: 64px 20px 42px;
+    padding: 60px 20px 42px;
+  }
+
+  .showroom-stage {
+    --showroom-scale: 1.26;
+    gap: 10px;
+  }
+
+  .showroom-vehicle-media {
+    margin-inline: -20px;
   }
 
   .showroom-copy h3 {
@@ -2571,8 +2584,7 @@ dd {
   }
 
   .showroom-main-image {
-    aspect-ratio: 16 / 10;
-    transform: scale(1);
+    aspect-ratio: 16 / 9;
   }
 
   .showroom-controls {
@@ -2654,6 +2666,29 @@ dd {
 
   .listing-actions {
     grid-template-columns: 1fr;
+  }
+
+  .vehicle-card h3,
+  .vehicle-card p,
+  .vehicle-card dl {
+    padding-inline: 18px;
+  }
+
+  .price-panel {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .price-panel.compact {
+    margin-inline: 18px;
+  }
+
+  .price-panel > span:last-child {
+    grid-column: auto;
+  }
+
+  .discount-badge {
+    justify-self: start;
   }
 
   .customer-story-card {
@@ -2816,6 +2851,38 @@ dd {
   .site-footer {
     align-items: flex-start;
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .showroom-section {
+    padding-top: 48px;
+  }
+
+  .showroom-stage {
+    --showroom-scale: 1.36;
+  }
+
+  .showroom-main-image {
+    aspect-ratio: 16 / 8.5;
+  }
+
+  .showroom-copy h3 {
+    font-size: 2rem;
+  }
+
+  .showroom-outline-link {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .customer-story-card {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-story-image {
+    aspect-ratio: 16 / 10;
+    width: 100%;
   }
 }
 

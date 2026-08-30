@@ -7,6 +7,10 @@ const { requireFields } = require('../utils/validation')
 const router = express.Router()
 const minimumBidIncrement = 100
 
+function getAuctionPrice(item) {
+  return Math.round(Number(item.main_price) * (1 - Number(item.discount_percent || 0) / 100))
+}
+
 router.use(authenticate)
 
 router.get('/', asyncRoute(async (req, res) => {
@@ -43,9 +47,10 @@ router.get('/auction-item/:id', asyncRoute(async (req, res) => {
 
 router.post('/', asyncRoute(async (req, res) => {
   requireFields(req.body, ['auctionItemId', 'amount'])
-  const itemRows = await query('SELECT id, is_active, item_status FROM auction_items WHERE id = ?;', [
-    Number(req.body.auctionItemId),
-  ])
+  const itemRows = await query(
+    'SELECT id, is_active, item_status, main_price, discount_percent FROM auction_items WHERE id = ?;',
+    [Number(req.body.auctionItemId)],
+  )
   const item = itemRows[0]
 
   if (!item) {
@@ -64,7 +69,8 @@ router.post('/', asyncRoute(async (req, res) => {
     [Number(req.body.auctionItemId)],
   )
   const currentHighBid = Number(highBidRows[0]?.currentHighBid || 0)
-  const minimumNextBid = currentHighBid > 0 ? currentHighBid + minimumBidIncrement : minimumBidIncrement
+  const openingBid = getAuctionPrice(item)
+  const minimumNextBid = currentHighBid > 0 ? currentHighBid + minimumBidIncrement : openingBid
 
   if (!Number.isFinite(amount) || amount < minimumNextBid) {
     res.status(400).json({

@@ -27,6 +27,7 @@ function normalizeAuctionItem(item) {
     lot: item.lot,
     mainPrice: item.mainPrice,
     discountPercent: item.discountPercent,
+    auctionPrice: item.auctionPrice,
     vin: item.vin,
     title: item.titleStatus,
     status: item.status,

@@ -16,6 +16,19 @@ const priceFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
 })
 const minimumBidIncrement = 100
+const defaultDiscountPercent = 60
+
+function getOpeningBid(item) {
+  if (!item) {
+    return minimumBidIncrement
+  }
+
+  if (item.auctionPrice) {
+    return Number(item.auctionPrice)
+  }
+
+  return Math.round(Number(item.mainPrice || 0) * (1 - Number(item.discountPercent ?? defaultDiscountPercent) / 100))
+}
 
 const defaultLogin = {
   email: 'info@royalmileauctions.com',
@@ -68,7 +81,8 @@ function BidPage() {
       .reduce((highest, bid) => Math.max(highest, Number(bid.amount || 0)), 0),
     [itemBids],
   )
-  const minimumNextBid = currentHighBid > 0 ? currentHighBid + minimumBidIncrement : minimumBidIncrement
+  const openingBid = getOpeningBid(selectedItem)
+  const minimumNextBid = currentHighBid > 0 ? currentHighBid + minimumBidIncrement : openingBid
   const suggestedBid = Math.max(minimumNextBid, buyerLastBid + minimumBidIncrement)
 
   useEffect(() => {
@@ -281,7 +295,7 @@ function BidPage() {
                   <strong>{buyerLastBid ? priceFormatter.format(buyerLastBid) : 'None yet'}</strong>
                 </div>
                 <div>
-                  <span>Minimum next bid</span>
+                  <span>{currentHighBid > 0 ? 'Minimum next bid' : 'Opening bid'}</span>
                   <strong>{priceFormatter.format(minimumNextBid)}</strong>
                 </div>
               </div>

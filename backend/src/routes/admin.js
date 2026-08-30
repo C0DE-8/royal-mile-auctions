@@ -95,7 +95,41 @@ router.post('/bids/demo', asyncRoute(async (req, res) => {
   requireFields(req.body, ['auctionItemId', 'bidderName', 'amount'])
 
   const auctionItemId = Number(req.body.auctionItemId)
+  const amount = Number(req.body.amount)
   const bidderName = req.body.bidderName.trim()
+  const itemRows = await query(
+    'SELECT id, main_price, discount_percent, is_active, item_status FROM auction_items WHERE id = ?;',
+    [auctionItemId],
+  )
+  const item = itemRows[0]
+
+  if (!item) {
+    res.status(404).json({ error: 'Auction item not found.' })
+    return
+  }
+
+  if (!item.is_active || String(item.item_status).toLowerCase().startsWith('closed')) {
+    res.status(400).json({ error: 'This auction is closed.' })
+    return
+  }
+
+  const highBidRows = await query(
+    'SELECT COALESCE(MAX(amount), 0) AS currentHighBid FROM bids WHERE auction_item_id = ?;',
+    [auctionItemId],
+  )
+  const currentHighBid = Number(highBidRows[0]?.currentHighBid || 0)
+  const openingBid = Math.round(Number(item.main_price) * (1 - Number(item.discount_percent || 0) / 100))
+  const minimumNextBid = currentHighBid > 0 ? currentHighBid + 100 : openingBid
+
+  if (!Number.isFinite(amount) || amount < minimumNextBid) {
+    res.status(400).json({
+      error: `Bid must be at least $${minimumNextBid.toLocaleString('en-US')}.`,
+      currentHighBid,
+      minimumNextBid,
+    })
+    return
+  }
+
   const email = (req.body.bidderEmail || `${bidderName.replace(/[^a-z0-9]+/gi, '.').toLowerCase()}-${Date.now()}@demo.local`)
     .toLowerCase()
   const passwordHash = await bcrypt.hash(`DemoBidder${Date.now()}!`, 10)
@@ -106,7 +140,7 @@ router.post('/bids/demo', asyncRoute(async (req, res) => {
   )
   const bidResult = await run(
     'INSERT INTO bids (user_id, auction_item_id, amount, status) VALUES (?, ?, ?, ?);',
-    [userResult.insertId, auctionItemId, Number(req.body.amount), req.body.status || 'pending'],
+    [userResult.insertId, auctionItemId, amount, req.body.status || 'pending'],
   )
   const rows = await query(
     `SELECT b.*, u.name AS bidder_name, u.email AS bidder_email, a.title AS item_title, a.lot, a.lane
