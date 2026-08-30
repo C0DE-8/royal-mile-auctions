@@ -15,6 +15,7 @@ import {
   updateAuctionItem,
   updateCryptoWallet,
 } from '../../api/admin.js'
+import { Alert, Toast } from '../../components/Feedback.jsx'
 import LazyImage from '../../components/LazyImage.jsx'
 
 const adminTabs = ['Inventory', 'Bids', 'Wallets', 'Users']
@@ -92,33 +93,6 @@ function walletToForm(item) {
     walletAddress: item.walletAddress || '',
     instructions: item.instructions || '',
   }
-}
-
-function Toast({ toast, onClose }) {
-  if (!toast) {
-    return null
-  }
-
-  return (
-    <div className={`toast toast-${toast.type}`} role="status" aria-live="polite">
-      <span>{toast.message}</span>
-      <button type="button" aria-label="Dismiss notification" onClick={onClose}>
-        x
-      </button>
-    </div>
-  )
-}
-
-function AdminAlert({ type, children }) {
-  if (!children) {
-    return null
-  }
-
-  return (
-    <div className={`admin-alert ${type}`} role={type === 'error' ? 'alert' : 'status'}>
-      {children}
-    </div>
-  )
 }
 
 function includesSearch(values, searchTerm) {
@@ -586,7 +560,7 @@ function AdminPage() {
             <button className="button primary" type="submit" disabled={isSubmitting}>
               {isSubmitting ? 'Signing in...' : 'Sign in'}
             </button>
-            <AdminAlert type={alert?.type}>{alert?.message}</AdminAlert>
+            <Alert type={alert?.type}>{alert?.message}</Alert>
           </form>
         </div>
       </section>
@@ -623,7 +597,7 @@ function AdminPage() {
         </article>
       </div>
 
-      <AdminAlert type={alert?.type}>{alert?.message}</AdminAlert>
+      <Alert type={alert?.type}>{alert?.message}</Alert>
 
       <div className="admin-tabs" role="tablist" aria-label="Admin sections">
         {adminTabs.map((tab) => (

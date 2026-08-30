@@ -15,7 +15,19 @@ router.use(authenticate)
 
 router.get('/', asyncRoute(async (req, res) => {
   const rows = await query(
-    `SELECT b.*, a.title AS item_title, a.lot, a.lane
+    `SELECT
+       b.*,
+       a.title AS item_title,
+       a.year,
+       a.make,
+       a.model,
+       a.image_url,
+       a.main_price,
+       a.discount_percent,
+       a.lot,
+       a.lane,
+       a.miles,
+       a.item_status
      FROM bids b
      JOIN auction_items a ON a.id = b.auction_item_id
      WHERE b.user_id = ?

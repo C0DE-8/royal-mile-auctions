@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchAuctionItems } from '../../api/auctionItems.js'
+import { Alert } from '../../components/Feedback.jsx'
 import LazyImage from '../../components/LazyImage.jsx'
 import {
   buyerLogin,
@@ -44,6 +45,14 @@ function saveBuyerAuth(auth) {
   localStorage.setItem('token', auth.token)
 }
 
+function getBuyerFriendlyError(error) {
+  if (error.message === 'Admin access required.') {
+    return 'Please sign in with your buyer account to view dashboard activity.'
+  }
+
+  return error.message
+}
+
 function DashboardPage() {
   const [auth, setAuth] = useState(() => readBuyerAuth())
   const [mode, setMode] = useState('login')
@@ -65,7 +74,32 @@ function DashboardPage() {
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const recentItems = items.slice(0, 4)
+  const bidVehicleCards = useMemo(() => {
+    const vehiclesByBid = new Map()
+
+    bids.forEach((bid) => {
+      const auctionItemId = bid.auction_item_id
+      const existing = vehiclesByBid.get(auctionItemId)
+      const item = items.find((vehicle) => String(vehicle.id) === String(auctionItemId))
+      const bidAmount = Number(bid.amount || 0)
+
+      vehiclesByBid.set(auctionItemId, {
+        id: auctionItemId,
+        image: item?.image || resolveBuyerAssetUrl(bid.image_url),
+        title: item
+          ? `${item.year} ${item.make} ${item.model}`
+          : `${bid.year || ''} ${bid.make || ''} ${bid.model || bid.item_title || 'Auction vehicle'}`.trim(),
+        lane: item?.lane || bid.lane,
+        lot: item?.lot || bid.lot,
+        miles: item?.miles || bid.miles,
+        status: bid.status,
+        itemStatus: item?.status || bid.item_status,
+        highestBid: Math.max(existing?.highestBid || 0, bidAmount),
+      })
+    })
+
+    return Array.from(vehiclesByBid.values())
+  }, [bids, items])
 
   useEffect(() => {
     fetchAuctionItems()
@@ -109,8 +143,11 @@ function DashboardPage() {
       .then(([nextBids, nextPayments]) => {
         setBids(nextBids)
         setPayments(nextPayments)
+        if (nextBids[0]?.auction_item_id) {
+          setSelectedItemId(nextBids[0].auction_item_id)
+        }
       })
-      .catch((nextError) => setError(nextError.message))
+      .catch((nextError) => setError(getBuyerFriendlyError(nextError)))
   }, [auth])
 
   const handleLogin = async (event) => {
@@ -125,7 +162,7 @@ function DashboardPage() {
       setAuth(nextAuth)
       setMessage(`Welcome back, ${nextAuth.user.name}.`)
     } catch (nextError) {
-      setError(nextError.message)
+      setError(getBuyerFriendlyError(nextError))
     } finally {
       setIsSubmitting(false)
     }
@@ -144,7 +181,7 @@ function DashboardPage() {
       setRegister(defaultRegister)
       setMessage(`Buyer account created for ${nextAuth.user.name}.`)
     } catch (nextError) {
-      setError(nextError.message)
+      setError(getBuyerFriendlyError(nextError))
     } finally {
       setIsSubmitting(false)
     }
@@ -170,7 +207,7 @@ function DashboardPage() {
       }))
       setMessage('Payment information submitted for review.')
     } catch (nextError) {
-      setError(nextError.message)
+      setError(getBuyerFriendlyError(nextError))
     } finally {
       setIsSubmitting(false)
     }
@@ -191,8 +228,8 @@ function DashboardPage() {
             <button className={mode === 'register' ? 'active' : undefined} type="button" onClick={() => setMode('register')}>Register</button>
           </div>
 
-          {message && <p className="admin-alert success">{message}</p>}
-          {error && <p className="admin-alert error">{error}</p>}
+          <Alert type="success">{message}</Alert>
+          <Alert type="error">{error}</Alert>
 
           {mode === 'login' ? (
             <form className="admin-panel admin-form narrow" onSubmit={handleLogin}>
@@ -235,29 +272,36 @@ function DashboardPage() {
         </button>
       </div>
 
-      {message && <p className="admin-alert success">{message}</p>}
-      {error && <p className="admin-alert error">{error}</p>}
+      <Alert type="success">{message}</Alert>
+      <Alert type="error">{error}</Alert>
 
       <div className="dashboard-action-grid">
         <section className="admin-panel dashboard-overview-panel">
           <div className="admin-section-head">
-            <span>{recentItems.length} available</span>
-            <h2>Ready to bid</h2>
+            <span>{bidVehicleCards.length} active</span>
+            <h2>Cars you're bidding on</h2>
           </div>
           <div className="dashboard-vehicle-list">
-            {recentItems.map((item) => (
-              <article className="buyer-selected-item" key={item.id}>
-                <LazyImage src={item.image} alt={`${item.year} ${item.make} ${item.model}`} />
+            {bidVehicleCards.map((item) => (
+              <article className="buyer-selected-item dashboard-bid-vehicle" key={item.id}>
+                <LazyImage src={item.image} alt={item.title} />
                 <div>
-                  <strong>{item.year} {item.make} {item.model}</strong>
-                  <span>Lane {item.lane} | Lot {item.lot} | {priceFormatter.format(item.mainPrice)}</span>
+                  <strong>{item.title}</strong>
+                  <span>Lane {item.lane} | Lot {item.lot} | Your bid {priceFormatter.format(item.highestBid)}</span>
+                  <span>{item.miles} | {item.itemStatus || item.status}</span>
                   <div className="dashboard-inline-actions">
-                    <Link className="table-action" to={`/bid/${item.id}`}>Bid</Link>
+                    <Link className="table-action" to={`/bid/${item.id}`}>Bid again</Link>
                     <Link className="table-action" to={`/inventory/${item.id}`}>Details</Link>
                   </div>
                 </div>
               </article>
             ))}
+            {bidVehicleCards.length === 0 && (
+              <div className="dashboard-empty-state">
+                <strong>No active bid vehicles yet.</strong>
+                <span>Open the bid page, choose a car, and place your first bid. Your bidding cars will appear here.</span>
+              </div>
+            )}
           </div>
           <Link className="button primary" to="/bid">Open bid page</Link>
         </section>

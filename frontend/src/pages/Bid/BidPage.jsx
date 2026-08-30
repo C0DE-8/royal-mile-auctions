@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { fetchAuctionItem, fetchAuctionItems } from '../../api/auctionItems.js'
+import { Alert } from '../../components/Feedback.jsx'
 import LazyImage from '../../components/LazyImage.jsx'
 import {
   buyerLogin,
@@ -215,8 +216,8 @@ function BidPage() {
         <Link className="button secondary dark" to="/dashboard">Dashboard</Link>
       </div>
 
-      {message && <p className="admin-alert success">{message}</p>}
-      {error && <p className="admin-alert error">{error}</p>}
+      <Alert type="success">{message}</Alert>
+      <Alert type="error">{error}</Alert>
 
       <div className="bid-page-layout">
         <section className="admin-panel admin-form">

@@ -171,33 +171,10 @@ function InventoryPage() {
                   Main price <s>{priceFormatter.format(vehicle.mainPrice)}</s>
                 </span>
               </div>
-              <p>{vehicle.notes}</p>
-              <dl className="listing-specs">
-                <div>
-                  <dt>Miles</dt>
-                  <dd>{vehicle.miles}</dd>
-                </div>
-                <div>
-                  <dt>Title</dt>
-                  <dd>{vehicle.title}</dd>
-                </div>
-                <div>
-                  <dt>Light</dt>
-                  <dd>{vehicle.light}</dd>
-                </div>
-                <div>
-                  <dt>Seller</dt>
-                  <dd>{vehicle.seller}</dd>
-                </div>
-                <div>
-                  <dt>Drive</dt>
-                  <dd>{vehicle.drivetrain}</dd>
-                </div>
-                <div>
-                  <dt>VIN</dt>
-                  <dd>{vehicle.vin}</dd>
-                </div>
-              </dl>
+              {vehicle.notes && <p className="listing-note">{vehicle.notes}</p>}
+              <p className="listing-quick-meta">
+                {vehicle.miles} | {vehicle.light || vehicle.status}
+              </p>
               <div className="listing-actions">
                 <Link className="button primary" to={`/inventory/${vehicle.id}`}>
                   View details

@@ -16,6 +16,7 @@ import mattStory from '../../assets/stories/Matt.png'
 import morganStory from '../../assets/stories/Morgan.png'
 import ryanStory from '../../assets/stories/Ryan.png'
 import { fetchAuctionItems } from '../../api/auctionItems.js'
+import { Alert } from '../../components/Feedback.jsx'
 import LazyImage from '../../components/LazyImage.jsx'
 import {
   auctionStats,
@@ -188,7 +189,7 @@ function HomePage() {
             photos, VIN details, title status, fees, seller notes, document
             confirmation, and secure payment steps.
           </p>
-          {loadError && <p className="site-alert warning">{loadError}</p>}
+          <Alert type="warning">{loadError}</Alert>
           <Link className="button primary" to="/inventory">
             View full inventory
           </Link>
