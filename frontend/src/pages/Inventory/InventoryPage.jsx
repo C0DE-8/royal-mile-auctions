@@ -101,7 +101,7 @@ function InventoryPage() {
   return (
     <>
       <HeroSlider slides={inventoryHeroSlides} />
-      <section className="page-shell">
+      <section className="page-shell inventory-shell">
       <div className="page-intro compact">
         <p className="eyebrow">Pre-sale run list</p>
         <h1>Photo-first inventory for this week's auction.</h1>
@@ -198,9 +198,14 @@ function InventoryPage() {
                   <dd>{vehicle.vin}</dd>
                 </div>
               </dl>
-              <Link className="button primary listing-action" to={`/inventory/${vehicle.id}`}>
-                View details
-              </Link>
+              <div className="listing-actions">
+                <Link className="button primary" to={`/inventory/${vehicle.id}`}>
+                  View details
+                </Link>
+                <Link className="button secondary dark" to={`/bid/${vehicle.id}`}>
+                  Bid now
+                </Link>
+              </div>
             </div>
           </article>
         ))}

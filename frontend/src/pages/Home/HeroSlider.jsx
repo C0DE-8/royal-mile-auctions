@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 
 function HeroSlider({ slides }) {
   const [activeSlide, setActiveSlide] = useState(0)
+  const [failedVideos, setFailedVideos] = useState({})
   const activeContent = slides[activeSlide]
 
   useEffect(() => {
@@ -17,7 +18,7 @@ function HeroSlider({ slides }) {
     <section className="hero-section" aria-label="Auction highlights">
       <div className="hero-slides">
         {slides.map((slide, index) => (
-          slide.video ? (
+          slide.video && !failedVideos[slide.title] ? (
             <video
               key={slide.title}
               className={index === activeSlide ? 'active' : undefined}
@@ -26,7 +27,9 @@ function HeroSlider({ slides }) {
               muted
               loop
               playsInline
+              preload="metadata"
               aria-label={slide.alt}
+              onError={() => setFailedVideos((current) => ({ ...current, [slide.title]: true }))}
             >
               <source src={slide.video} type="video/mp4" />
             </video>

@@ -234,16 +234,21 @@ function HomePage() {
       <section className="showroom-section">
         <div className="showroom-stage">
           <div className="showroom-vehicle-media" key={activeSlide.title}>
-            <LazyImage
+            <img
               className="showroom-main-image"
               src={activeSlide.image}
               alt={activeSlide.title}
+              loading="eager"
+              decoding="async"
             />
           </div>
           <article className="showroom-copy" key={`${activeSlide.title}-copy`}>
             <span>{activeSlide.eyebrow}</span>
             <h3>{activeSlide.title}</h3>
             <p>{activeSlide.copy}</p>
+            <Link className="showroom-outline-link" to="/inventory">
+              Learn more
+            </Link>
           </article>
         </div>
 

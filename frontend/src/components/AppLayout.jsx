@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router-dom'
 import Footer from './Footer.jsx'
 import Header from './Header.jsx'
+import Seo from './Seo.jsx'
 import ScrollAndReveal from './ScrollAndReveal.jsx'
 import AdminPage from '../pages/Admin/AdminPage.jsx'
 import AuctionsPage from '../pages/Auctions/AuctionsPage.jsx'
@@ -17,6 +18,7 @@ import VehicleDetailPage from '../pages/VehicleDetail/VehicleDetailPage.jsx'
 function AppLayout() {
   return (
     <>
+      <Seo />
       <ScrollAndReveal />
       <Header />
       <main>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import brandLogo from '../assets/logos/Royal-Mile-Auctions-logo.png'
+import loaderLogo from '../assets/logos/Royal-Mile-Auctions-loader.png'
 import { navItems } from '../data/siteData.js'
 
 function Header() {
@@ -11,7 +11,7 @@ function Header() {
   return (
     <header className={isMenuOpen ? 'site-header menu-open' : 'site-header'}>
       <Link className="brand" to="/" aria-label="Royal Mile Auctions home" onClick={closeMenu}>
-        <img className="brand-logo" src={brandLogo} alt="" />
+        <img className="brand-logo" src={loaderLogo} alt="" />
         <span className="brand-copy">
           <strong>Royal Mile Auctions</strong>
           <small>Online Auto Auction</small>
