@@ -66,6 +66,28 @@ export async function fetchAdminBids(token, auctionItemId = '') {
   }
 }
 
+export async function fetchAdminPayments(token) {
+  try {
+    const response = await axiosInstance.get('/api/admin/payments', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return response.data.data
+  } catch (error) {
+    throw new Error(error.response?.data?.error || 'Unable to load payments.', { cause: error })
+  }
+}
+
+export async function updateAdminPayment(token, id, payload) {
+  try {
+    const response = await axiosInstance.patch(`/api/admin/payments/${id}`, payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return response.data.data
+  } catch (error) {
+    throw new Error(error.response?.data?.error || 'Unable to update payment.', { cause: error })
+  }
+}
+
 export async function createDemoBid(token, form) {
   try {
     const response = await axiosInstance.post('/api/admin/bids/demo', form, {
@@ -150,5 +172,53 @@ export async function fetchAdminUsers(token) {
     return response.data.data
   } catch (error) {
     throw new Error(error.response?.data?.error || 'Unable to load users.', { cause: error })
+  }
+}
+
+export async function updateAdminUser(token, id, payload) {
+  try {
+    const response = await axiosInstance.patch(`/api/admin/users/${id}`, payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return response.data.data
+  } catch (error) {
+    throw new Error(error.response?.data?.error || 'Unable to update user.', { cause: error })
+  }
+}
+
+export async function fetchAdminMetrics(token) {
+  try {
+    const response = await axiosInstance.get('/api/admin/metrics', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return response.data.data
+  } catch (error) {
+    throw new Error(error.response?.data?.error || 'Unable to load admin metrics.', { cause: error })
+  }
+}
+
+export async function fetchAdminEmailLogs(token) {
+  try {
+    const response = await axiosInstance.get('/api/admin/emails', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return response.data.data
+  } catch (error) {
+    throw new Error(error.response?.data?.error || 'Unable to load email history.', { cause: error })
+  }
+}
+
+export async function sendAdminEmail(token, payload) {
+  try {
+    const response = await axiosInstance.post('/api/admin/emails/send', payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return response.data.data
+  } catch (error) {
+    if (error.response?.data?.data) {
+      return error.response.data.data
+    }
+
+    throw new Error(error.response?.data?.error || 'Unable to send email.', { cause: error })
   }
 }

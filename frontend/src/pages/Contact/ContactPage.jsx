@@ -38,7 +38,9 @@ function ContactPage() {
         </article>
         <article className="reveal-card">
           <h2>Buyer Desk</h2>
-          <p>(302) 555-0188</p>
+          <p>
+            <a href="tel:+15126476269">+1 (512) 647-6269</a>
+          </p>
           <p>info@royalmileauctions.com</p>
           <a className="button primary" href="mailto:info@royalmileauctions.com">
             Email Support

@@ -62,8 +62,26 @@ function toWallet(row) {
   }
 }
 
+function toEmailLog(row) {
+  return {
+    id: row.id,
+    adminUserId: row.admin_user_id,
+    adminName: row.admin_name,
+    recipientEmail: row.recipient_email,
+    recipientUserId: row.recipient_user_id,
+    recipientName: row.recipient_name,
+    subject: row.subject,
+    body: row.body,
+    status: row.status,
+    errorMessage: row.error_message,
+    providerMessageId: row.provider_message_id,
+    createdAt: row.created_at,
+  }
+}
+
 module.exports = {
   toAuctionItem,
+  toEmailLog,
   toUser,
   toWallet,
 }

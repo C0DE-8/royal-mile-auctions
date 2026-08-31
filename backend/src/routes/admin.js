@@ -4,10 +4,12 @@ const asyncRoute = require('../middleware/asyncRoute')
 const { authenticate, requireAdmin } = require('../middleware/auth')
 const { upload, uploadTo } = require('../middleware/upload')
 const { query, run } = require('../db')
-const { toAuctionItem, toUser, toWallet } = require('../utils/mappers')
+const { sendMail } = require('../services/mailer')
+const { toAuctionItem, toEmailLog, toUser, toWallet } = require('../utils/mappers')
 const { boolToInt, requireFields } = require('../utils/validation')
 
 const router = express.Router()
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 router.use(authenticate, requireAdmin)
 
@@ -55,6 +57,103 @@ async function findWallet(id) {
   return rows[0]
 }
 
+function normalizeEmails(emails = []) {
+  const values = Array.isArray(emails) ? emails : String(emails).split(',')
+  const seen = new Set()
+
+  return values
+    .map((email) => String(email || '').trim().toLowerCase())
+    .filter((email) => {
+      if (!email || seen.has(email) || !emailPattern.test(email)) {
+        return false
+      }
+
+      seen.add(email)
+      return true
+    })
+}
+
+function getInvalidEmails(emails = []) {
+  const values = Array.isArray(emails) ? emails : String(emails).split(',')
+
+  return values
+    .map((email) => String(email || '').trim().toLowerCase())
+    .filter((email) => email && !emailPattern.test(email))
+}
+
+async function getUsersByIds(userIds = []) {
+  const ids = [...new Set((Array.isArray(userIds) ? userIds : [userIds])
+    .map((id) => Number(id))
+    .filter((id) => Number.isInteger(id) && id > 0))]
+
+  if (ids.length === 0) {
+    return []
+  }
+
+  const placeholders = ids.map(() => '?').join(', ')
+  return query(
+    `SELECT id, name, email FROM users WHERE is_active = 1 AND id IN (${placeholders});`,
+    ids,
+  )
+}
+
+async function getAllActiveBuyerUsers() {
+  return query(
+    "SELECT id, name, email FROM users WHERE is_active = 1 AND role = 'user' ORDER BY created_at DESC;",
+  )
+}
+
+async function logEmailAttempt({ adminUserId, body, errorMessage, providerMessageId, recipientEmail, recipientUserId, status, subject }) {
+  await run(
+    `INSERT INTO email_logs (
+      admin_user_id, recipient_email, recipient_user_id, subject, body,
+      status, error_message, provider_message_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
+    [
+      adminUserId,
+      recipientEmail,
+      recipientUserId || null,
+      subject,
+      body,
+      status,
+      errorMessage || null,
+      providerMessageId || null,
+    ],
+  )
+}
+
+router.get('/metrics', asyncRoute(async (req, res) => {
+  const rows = await query(`
+    SELECT
+      (SELECT COUNT(*) FROM auction_items WHERE is_active = 1) AS active_items,
+      (SELECT COUNT(*) FROM crypto_wallets WHERE is_active = 1) AS active_wallets,
+      (SELECT COUNT(*) FROM users WHERE role = 'admin') AS admins,
+      (SELECT COUNT(*) FROM users) AS total_users,
+      (SELECT COUNT(*) FROM users WHERE role = 'user' AND is_active = 1) AS active_buyers,
+      (SELECT COUNT(*) FROM bids WHERE status IN ('pending', 'winning')) AS active_bids,
+      (SELECT COUNT(*) FROM payments WHERE status IN ('pending', 'submitted')) AS pending_payments,
+      (SELECT COUNT(*) FROM auction_items WHERE is_active = 0 OR LOWER(item_status) LIKE 'closed%') AS closed_auctions,
+      (SELECT COUNT(*) FROM email_logs WHERE status = 'sent') AS sent_emails,
+      (SELECT COUNT(*) FROM email_logs WHERE status = 'failed') AS failed_emails;
+  `)
+
+  const metrics = rows[0]
+  res.json({
+    data: {
+      activeBids: Number(metrics.active_bids || 0),
+      activeBuyers: Number(metrics.active_buyers || 0),
+      activeItems: Number(metrics.active_items || 0),
+      activeWallets: Number(metrics.active_wallets || 0),
+      admins: Number(metrics.admins || 0),
+      closedAuctions: Number(metrics.closed_auctions || 0),
+      failedEmails: Number(metrics.failed_emails || 0),
+      pendingPayments: Number(metrics.pending_payments || 0),
+      sentEmails: Number(metrics.sent_emails || 0),
+      totalUsers: Number(metrics.total_users || 0),
+    },
+  })
+}))
+
 router.get('/auction-items', asyncRoute(async (req, res) => {
   const rows = await query(`
     ${auctionItemSelect}
@@ -89,6 +188,71 @@ router.get('/bids', asyncRoute(async (req, res) => {
   )
 
   res.json({ data: rows })
+}))
+
+router.get('/payments', asyncRoute(async (req, res) => {
+  const rows = await query(
+    `SELECT
+      p.*,
+      u.name AS buyer_name,
+      u.email AS buyer_email,
+      a.title AS item_title,
+      a.lot,
+      a.lane,
+      w.wallet_name,
+      w.network,
+      w.wallet_address
+    FROM payments p
+    JOIN users u ON u.id = p.user_id
+    LEFT JOIN auction_items a ON a.id = p.auction_item_id
+    LEFT JOIN crypto_wallets w ON w.id = p.crypto_wallet_id
+    ORDER BY p.created_at DESC, p.id DESC;`,
+  )
+
+  res.json({ data: rows })
+}))
+
+router.patch('/payments/:id', asyncRoute(async (req, res) => {
+  const id = Number(req.params.id)
+  const allowedStatuses = ['pending', 'submitted', 'confirmed', 'rejected', 'cancelled']
+
+  if (!allowedStatuses.includes(req.body.status)) {
+    res.status(400).json({ error: 'Invalid payment status.' })
+    return
+  }
+
+  const existing = await query('SELECT id FROM payments WHERE id = ?;', [id])
+  if (!existing[0]) {
+    res.status(404).json({ error: 'Payment not found.' })
+    return
+  }
+
+  await run('UPDATE payments SET status = ?, notes = COALESCE(?, notes) WHERE id = ?;', [
+    req.body.status,
+    req.body.notes || null,
+    id,
+  ])
+
+  const rows = await query(
+    `SELECT
+      p.*,
+      u.name AS buyer_name,
+      u.email AS buyer_email,
+      a.title AS item_title,
+      a.lot,
+      a.lane,
+      w.wallet_name,
+      w.network,
+      w.wallet_address
+    FROM payments p
+    JOIN users u ON u.id = p.user_id
+    LEFT JOIN auction_items a ON a.id = p.auction_item_id
+    LEFT JOIN crypto_wallets w ON w.id = p.crypto_wallet_id
+    WHERE p.id = ?;`,
+    [id],
+  )
+
+  res.json({ data: rows[0] })
 }))
 
 router.post('/bids/demo', asyncRoute(async (req, res) => {
@@ -420,6 +584,121 @@ router.get('/users', asyncRoute(async (req, res) => {
   res.json({ data: rows.map(toUser) })
 }))
 
+router.get('/emails', asyncRoute(async (req, res) => {
+  const rows = await query(
+    `SELECT
+      el.*,
+      admin.name AS admin_name,
+      recipient.name AS recipient_name
+    FROM email_logs el
+    JOIN users admin ON admin.id = el.admin_user_id
+    LEFT JOIN users recipient ON recipient.id = el.recipient_user_id
+    ORDER BY el.created_at DESC, el.id DESC
+    LIMIT 50;`,
+  )
+
+  res.json({ data: rows.map(toEmailLog) })
+}))
+
+router.post('/emails/send', asyncRoute(async (req, res) => {
+  requireFields(req.body, ['subject', 'body'])
+
+  const subject = String(req.body.subject).trim()
+  const body = String(req.body.body).trim()
+
+  if (!subject || !body) {
+    res.status(400).json({ error: 'Email subject and message body are required.' })
+    return
+  }
+
+  if (subject.length > 255) {
+    res.status(400).json({ error: 'Email subject must be 255 characters or less.' })
+    return
+  }
+
+  const recipientMode = req.body.recipientMode || 'manual'
+  const manualEmails = recipientMode === 'manual' ? normalizeEmails(req.body.emails) : []
+  const invalidEmails = recipientMode === 'manual' ? getInvalidEmails(req.body.emails) : []
+
+  if (invalidEmails.length > 0) {
+    res.status(400).json({ error: `Invalid recipient email: ${invalidEmails[0]}` })
+    return
+  }
+
+  const users = recipientMode === 'all-active'
+    ? await getAllActiveBuyerUsers()
+    : await getUsersByIds(req.body.userIds)
+  const recipientsByEmail = new Map()
+
+  manualEmails.forEach((email) => {
+    recipientsByEmail.set(email, { email, userId: null })
+  })
+  users.forEach((user) => {
+    recipientsByEmail.set(user.email.toLowerCase(), { email: user.email.toLowerCase(), userId: user.id })
+  })
+
+  const recipients = Array.from(recipientsByEmail.values())
+
+  if (recipients.length === 0) {
+    res.status(400).json({ error: 'Add at least one valid recipient email or select active users.' })
+    return
+  }
+
+  if (recipients.length > 100) {
+    res.status(400).json({ error: 'Send to 100 or fewer recipients at a time.' })
+    return
+  }
+
+  const results = []
+
+  for (const recipient of recipients) {
+    try {
+      const sent = await sendMail({
+        body,
+        subject,
+        to: recipient.email,
+      })
+
+      await logEmailAttempt({
+        adminUserId: req.user.id,
+        body,
+        providerMessageId: sent.messageId,
+        recipientEmail: recipient.email,
+        recipientUserId: recipient.userId,
+        status: 'sent',
+        subject,
+      })
+
+      results.push({ email: recipient.email, status: 'sent' })
+    } catch (error) {
+      await logEmailAttempt({
+        adminUserId: req.user.id,
+        body,
+        errorMessage: error.message,
+        recipientEmail: recipient.email,
+        recipientUserId: recipient.userId,
+        status: 'failed',
+        subject,
+      })
+
+      results.push({ email: recipient.email, error: error.message, status: 'failed' })
+    }
+  }
+
+  const sentCount = results.filter((result) => result.status === 'sent').length
+  const failed = results.filter((result) => result.status === 'failed')
+
+  res.status(sentCount > 0 ? 200 : 503).json({
+    data: {
+      failedCount: failed.length,
+      failedRecipients: failed,
+      skippedInvalidEmails: invalidEmails,
+      sentCount,
+      totalRequested: recipients.length,
+    },
+  })
+}))
+
 router.post('/users', asyncRoute(async (req, res) => {
   requireFields(req.body, ['name', 'email', 'password', 'role'])
   const passwordHash = await bcrypt.hash(req.body.password, 10)
@@ -449,6 +728,16 @@ router.patch('/users/:id', asyncRoute(async (req, res) => {
 
   if (!existing) {
     res.status(404).json({ error: 'User not found.' })
+    return
+  }
+
+  if (existing.id === req.user.id && req.body.isActive === false) {
+    res.status(400).json({ error: 'You cannot deactivate your own admin account.' })
+    return
+  }
+
+  if (existing.id === req.user.id && req.body.role && req.body.role !== 'admin') {
+    res.status(400).json({ error: 'You cannot remove admin access from your own account.' })
     return
   }
 

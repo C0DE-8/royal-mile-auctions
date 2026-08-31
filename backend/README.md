@@ -7,7 +7,18 @@ Express API backed by MySQL through `mysql2`.
 1. Copy `.env.example` to `.env`.
 2. Update the `DB_*` values for your MySQL server.
 3. Set `JWT_SECRET` to a long random value.
-4. Run migrations and seeds:
+4. Configure SMTP if admin email sending should work:
+
+```sh
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_SECURE=false
+MAIL_USER=mailer@example.com
+MAIL_PASS=your-mail-password
+MAIL_FROM="Royal Mile Auctions <mailer@example.com>"
+```
+
+5. Run migrations and seeds:
 
 ```sh
 npm run migrate
@@ -65,6 +76,9 @@ Send `Authorization: Bearer <token>` from `/api/auth/login`.
 Send an admin `Authorization: Bearer <token>` from `/api/auth/login`.
 
 - `GET /api/admin/auction-items`
+- `GET /api/admin/metrics`
+- `GET /api/admin/payments`
+- `PATCH /api/admin/payments/:id`
 - `POST /api/admin/auction-items`
 - `PUT /api/admin/auction-items/:id`
 - `DELETE /api/admin/auction-items/:id`
@@ -75,7 +89,23 @@ Send an admin `Authorization: Bearer <token>` from `/api/auth/login`.
 - `GET /api/admin/users`
 - `POST /api/admin/users`
 - `PATCH /api/admin/users/:id`
+- `GET /api/admin/emails`
+- `POST /api/admin/emails/send`
 
 Auction item image upload field: `image`.
 
 Crypto wallet QR upload field: `qrCode`.
+
+Admin email send body:
+
+```json
+{
+  "recipientMode": "manual",
+  "emails": ["buyer@example.com"],
+  "userIds": [],
+  "subject": "Auction update",
+  "body": "Your message body"
+}
+```
+
+Use `"recipientMode": "selected"` with `userIds`, or `"recipientMode": "all-active"` to send to every active buyer account.
