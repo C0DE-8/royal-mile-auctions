@@ -98,6 +98,16 @@ function normalizeEmails(emails = []) {
     })
 }
 
+function toBid(row) {
+  return {
+    ...row,
+    bidder_id: row.user_id,
+    bidder_name: row.bidder_name,
+    bidder_email: row.bidder_email,
+    item_title: row.item_title,
+  }
+}
+
 function getInvalidEmails(emails = []) {
   const values = Array.isArray(emails) ? emails : String(emails).split(',')
 
@@ -214,7 +224,7 @@ router.get('/bids', asyncRoute(async (req, res) => {
     params,
   )
 
-  res.json({ data: rows.map(toPayment) })
+  res.json({ data: rows.map(toBid) })
 }))
 
 router.get('/won-items', asyncRoute(async (req, res) => {
@@ -357,11 +367,13 @@ router.patch('/payments/:id', asyncRoute(async (req, res) => {
 }))
 
 router.post('/bids/demo', asyncRoute(async (req, res) => {
-  requireFields(req.body, ['auctionItemId', 'bidderName', 'amount'])
+  requireFields(req.body, ['auctionItemId', 'amount'])
 
   const auctionItemId = Number(req.body.auctionItemId)
   const amount = Number(req.body.amount)
-  const bidderName = req.body.bidderName.trim()
+  const bidderUserId = Number(req.body.bidderUserId || 0)
+  const bidderName = String(req.body.bidderName || '').trim()
+  const bidderEmail = String(req.body.bidderEmail || '').trim().toLowerCase()
   const itemRows = await query(
     'SELECT id, main_price, discount_percent, is_active, item_status FROM auction_items WHERE id = ?;',
     [auctionItemId],
@@ -395,17 +407,50 @@ router.post('/bids/demo', asyncRoute(async (req, res) => {
     return
   }
 
-  const email = (req.body.bidderEmail || `${bidderName.replace(/[^a-z0-9]+/gi, '.').toLowerCase()}-${Date.now()}@demo.local`)
-    .toLowerCase()
-  const passwordHash = await bcrypt.hash(`DemoBidder${Date.now()}!`, 10)
+  let bidder = null
 
-  const userResult = await run(
-    'INSERT INTO users (name, email, password_hash, role, phone) VALUES (?, ?, ?, ?, ?);',
-    [bidderName, email, passwordHash, 'user', req.body.phone || null],
-  )
+  if (bidderUserId) {
+    const userRows = await query(
+      "SELECT id, name, email FROM users WHERE id = ? AND role = 'user' AND is_active = 1;",
+      [bidderUserId],
+    )
+    bidder = userRows[0] || null
+
+    if (!bidder) {
+      res.status(404).json({ error: 'Selected bidder was not found or is inactive.' })
+      return
+    }
+  } else if (bidderEmail) {
+    const userRows = await query(
+      "SELECT id, name, email FROM users WHERE email = ? AND role = 'user' LIMIT 1;",
+      [bidderEmail],
+    )
+    bidder = userRows[0] || null
+  }
+
+  if (!bidder) {
+    if (!bidderName) {
+      res.status(400).json({ error: 'Bidder name is required when creating a new demo bidder.' })
+      return
+    }
+
+    const email = bidderEmail || `${bidderName.replace(/[^a-z0-9]+/gi, '.').toLowerCase()}-${Date.now()}@demo.local`
+    const passwordHash = await bcrypt.hash('123456', 10)
+
+    const userResult = await run(
+      'INSERT INTO users (name, email, password_hash, role, phone) VALUES (?, ?, ?, ?, ?);',
+      [bidderName, email.toLowerCase(), passwordHash, 'user', req.body.phone || null],
+    )
+    bidder = {
+      id: userResult.insertId,
+      name: bidderName,
+      email: email.toLowerCase(),
+    }
+  }
+
   const bidResult = await run(
     'INSERT INTO bids (user_id, auction_item_id, amount, status) VALUES (?, ?, ?, ?);',
-    [userResult.insertId, auctionItemId, amount, req.body.status || 'pending'],
+    [bidder.id, auctionItemId, amount, req.body.status || 'pending'],
   )
   const rows = await query(
     `SELECT b.*, u.name AS bidder_name, u.email AS bidder_email, a.title AS item_title, a.lot, a.lane

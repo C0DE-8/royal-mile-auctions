@@ -67,6 +67,7 @@ router.get('/auction-item/:id', asyncRoute(async (req, res) => {
   const rows = await query(
     `SELECT
        b.id,
+       b.user_id AS bidder_id,
        b.amount,
        b.status,
        b.created_at,
@@ -94,6 +95,7 @@ router.get('/auction-item/:id/summary', asyncRoute(async (req, res) => {
   const rows = await query(
     `SELECT
        b.id,
+       b.user_id AS bidder_id,
        b.amount,
        b.status,
        b.created_at,

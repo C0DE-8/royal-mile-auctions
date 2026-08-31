@@ -1788,6 +1788,34 @@ dd {
   font-weight: 700;
 }
 
+.bid-row.highest {
+  background: rgba(198, 43, 58, 0.08);
+  border-color: rgba(198, 43, 58, 0.28);
+}
+
+.bid-row-main {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.bid-row .bid-rank {
+  background: rgba(198, 43, 58, 0.12);
+  border: 1px solid rgba(198, 43, 58, 0.24);
+  border-radius: 999px;
+  color: var(--red-dark);
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+.bid-row .bid-row-meta {
+  color: var(--muted);
+}
+
 .admin-address {
   display: block;
   overflow-wrap: anywhere;
@@ -2371,6 +2399,7 @@ button.table-action:disabled {
 
 .bid-summary span,
 .bid-summary strong,
+.bid-summary small,
 .bid-helper-grid span,
 .bid-helper-grid strong {
   display: block;
@@ -2396,6 +2425,13 @@ button.table-action:disabled {
 .bid-helper-grid strong {
   color: var(--ink);
   font-size: 1.12rem;
+}
+
+.bid-summary small {
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 800;
+  margin-top: 8px;
 }
 
 .flow-grid {

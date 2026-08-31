@@ -27,6 +27,9 @@ The biggest missing piece is operational communication. Admins can see users and
 - [x] Add per-row user actions: edit role, activate/deactivate, and email user.
 - [x] Add admin payment review tab with search, status filter, confirm/reject actions, and email-buyer shortcut.
 - [x] Keep buyer bid page synced with backend bid history after logout/login.
+- [x] Show bidder standings with one visible row per buyer and a clear highest-bidder label.
+- [x] Let admin reuse a past demo bidder for top-up bids.
+- [x] End auction from admin Bids tab and move the highest bidder into won cars.
 
 ## Flow Additions
 
@@ -74,6 +77,8 @@ password: OYXEu7&p!5f&$88
 - [x] Add admin won-items endpoint and status update route.
 - [x] Keep won items on hold until the fee payment is confirmed.
 - [x] Add bid activity summary endpoint with current high bid and minimum next bid.
+- [x] Reuse existing bidder account when admin submits a demo top-up bid.
+- [x] Verify auction close creates a won item for the highest bidder.
 
 ## Suggested Email Log Table
 
@@ -134,6 +139,8 @@ CREATE TABLE IF NOT EXISTS email_logs (
   - [x] All active buyer send.
   - [x] Payment status update.
   - [x] Buyer bid summary reload after existing bids.
+  - [x] Admin demo bidder reuse.
+  - [x] Admin auction close creates won item.
 
 ## Recommended Build Order
 

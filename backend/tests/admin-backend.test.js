@@ -33,8 +33,12 @@ const allActiveBuyers = [
 ]
 const auctionItem = {
   id: 20,
+  title: '2024 Test Vehicle',
+  auction_fee: 500,
   main_price: 36500,
   discount_percent: 60,
+  is_active: 1,
+  item_status: 'Green light',
 }
 const itemBids = [
   {
@@ -56,15 +60,23 @@ const itemBids = [
 ]
 
 const state = {
+  bidUpdates: [],
+  createdBids: [],
   emailLogs: [],
   mailSends: [],
   paymentUpdates: [],
+  wonItemId: 400,
+  wonItems: [],
 }
 
 function resetState() {
+  state.bidUpdates = []
+  state.createdBids = []
   state.emailLogs = []
   state.mailSends = []
   state.paymentUpdates = []
+  state.wonItemId = 400
+  state.wonItems = []
 }
 
 const mockDb = {
@@ -95,11 +107,27 @@ const mockDb = {
       return params[0] === auctionItem.id ? [auctionItem] : []
     }
 
+    if (normalized.includes('SELECT id, main_price, discount_percent, is_active, item_status FROM auction_items WHERE id = ?')) {
+      return params[0] === auctionItem.id ? [auctionItem] : []
+    }
+
+    if (normalized.includes('FROM auction_items ai') && normalized.includes('WHERE ai.id = ?')) {
+      return params[0] === auctionItem.id ? [auctionItem] : []
+    }
+
     if (normalized.includes('SELECT COALESCE(MAX(amount), 0) AS currentHighBid FROM bids WHERE auction_item_id = ?')) {
       return params[0] === auctionItem.id ? [{ currentHighBid: 14800 }] : [{ currentHighBid: 0 }]
     }
 
-    if (normalized.includes('FROM bids b JOIN users u ON u.id = b.user_id WHERE b.auction_item_id = ?')) {
+    if (normalized.includes("SELECT id, name, email FROM users WHERE id = ? AND role = 'user' AND is_active = 1")) {
+      return params[0] === buyerUser.id ? [buyerUser] : []
+    }
+
+    if (normalized.includes("SELECT id, name, email FROM users WHERE email = ? AND role = 'user' LIMIT 1")) {
+      return params[0] === buyerUser.email ? [buyerUser] : []
+    }
+
+    if (params.length === 2 && normalized.includes('FROM bids b JOIN users u ON u.id = b.user_id WHERE b.auction_item_id = ?')) {
       const currentUserId = params[0]
       const auctionItemId = params[1]
 
@@ -109,8 +137,50 @@ const mockDb = {
 
       return itemBids.map((bid) => ({
         ...bid,
+        bidder_id: bid.user_id,
         is_current_user: bid.user_id === currentUserId ? 1 : 0,
       }))
+    }
+
+    if (normalized.includes('FROM bids b JOIN users u ON u.id = b.user_id JOIN auction_items a ON a.id = b.auction_item_id WHERE b.id = ?')) {
+      const bid = state.createdBids.find((item) => item.id === params[0])
+      return bid ? [bid] : []
+    }
+
+    if (normalized.includes('FROM bids b JOIN users u ON u.id = b.user_id WHERE b.auction_item_id = ? ORDER BY b.amount DESC')) {
+      return itemBids
+        .map((bid) => ({
+          ...bid,
+          bidder_email: bid.user_id === buyerUser.id ? buyerUser.email : 'other@example.com',
+        }))
+        .sort((first, second) => Number(second.amount) - Number(first.amount))
+    }
+
+    if (normalized.includes('SELECT id, fee_payment_id FROM won_items WHERE auction_item_id = ?')) {
+      const wonItem = state.wonItems.find((item) => item.auction_item_id === params[0])
+      return wonItem ? [{ id: wonItem.id, fee_payment_id: wonItem.fee_payment_id }] : []
+    }
+
+    if (normalized.includes("SELECT id FROM payments WHERE won_item_id = ? AND payment_type = 'auction_fee'")) {
+      return []
+    }
+
+    if (normalized.includes('FROM won_items wi') && normalized.includes('WHERE wi.id = ?')) {
+      const wonItem = state.wonItems.find((item) => item.id === params[0])
+      return wonItem ? [{
+        ...wonItem,
+        buyer_name: 'Other Buyer',
+        buyer_email: 'other@example.com',
+        title: auctionItem.title,
+        year: 2024,
+        make: 'Test',
+        model: 'Vehicle',
+        image_url: null,
+        lane: 'A',
+        lot: 'L10',
+        receipt_url: null,
+        payment_status: 'pending',
+      }] : []
     }
 
     if (normalized.includes('FROM payments p') && normalized.includes('WHERE p.id = ?')) {
@@ -178,6 +248,57 @@ const mockDb = {
         id: params[2],
       })
       return { affectedRows: 1 }
+    }
+
+    if (normalized.startsWith('INSERT INTO bids')) {
+      const insertId = 500 + state.createdBids.length
+      state.createdBids.push({
+        id: insertId,
+        user_id: params[0],
+        auction_item_id: params[1],
+        amount: params[2],
+        status: params[3],
+        bidder_name: params[0] === buyerUser.id ? buyerUser.name : 'Other Buyer',
+        bidder_email: params[0] === buyerUser.id ? buyerUser.email : 'other@example.com',
+        item_title: auctionItem.title,
+        lot: 'L10',
+        lane: 'A',
+      })
+      return { insertId, affectedRows: 1 }
+    }
+
+    if (normalized.startsWith('UPDATE bids SET')) {
+      state.bidUpdates.push({ params, sql: normalized })
+      return { affectedRows: 1 }
+    }
+
+    if (normalized.startsWith('UPDATE auction_items SET')) {
+      return { affectedRows: 1 }
+    }
+
+    if (normalized.startsWith('INSERT INTO won_items')) {
+      state.wonItems.push({
+        id: state.wonItemId,
+        user_id: params[0],
+        auction_item_id: params[1],
+        winning_bid_id: params[2],
+        winning_amount: params[3],
+        fee_amount: params[4],
+        fee_status: params[5],
+        item_status: params[6],
+        fee_payment_id: null,
+      })
+      return { insertId: state.wonItemId, affectedRows: 1 }
+    }
+
+    if (normalized.startsWith('INSERT INTO payments')) {
+      return { insertId: 700, affectedRows: 1 }
+    }
+
+    if (normalized.startsWith('UPDATE won_items SET fee_payment_id = ?')) {
+      const wonItem = state.wonItems.find((item) => item.id === params[1])
+      if (wonItem) wonItem.fee_payment_id = params[0]
+      return { affectedRows: wonItem ? 1 : 0 }
     }
 
     return { insertId: 1, affectedRows: 1 }
@@ -406,7 +527,44 @@ test('buyer bid summary returns existing activity and next minimum', async () =>
     assert.equal(payload.data.currentHighBid, 14800)
     assert.equal(payload.data.minimumNextBid, 14900)
     assert.equal(payload.data.bids.length, 2)
+    assert.equal(payload.data.bids[0].bidder_id, 6)
     assert.equal(payload.data.bids[0].bidder_name, 'Other Buyer')
     assert.equal(payload.data.bids[1].is_current_user, true)
+  })
+})
+
+test('admin demo bid can reuse an existing bidder account', async () => {
+  resetState()
+
+  await withServer(async (baseUrl) => {
+    const { payload, response } = await request(baseUrl, '/api/admin/bids/demo', {
+      body: {
+        amount: 14900,
+        auctionItemId: auctionItem.id,
+        bidderUserId: buyerUser.id,
+      },
+      token: tokenFor(adminUser),
+    })
+
+    assert.equal(response.status, 201)
+    assert.equal(state.createdBids[0].user_id, buyerUser.id)
+    assert.equal(payload.data.bidder_email, buyerUser.email)
+  })
+})
+
+test('admin close auction creates won item for highest bidder', async () => {
+  resetState()
+
+  await withServer(async (baseUrl) => {
+    const { payload, response } = await request(baseUrl, `/api/admin/auction-items/${auctionItem.id}/close`, {
+      token: tokenFor(adminUser),
+    })
+
+    assert.equal(response.status, 200)
+    assert.equal(payload.data.winningBid.id, 100)
+    assert.equal(payload.data.wonItem.winningBidId, 100)
+    assert.equal(payload.data.wonItem.winningAmount, 14800)
+    assert.equal(payload.data.wonItem.itemStatus, 'on_hold')
+    assert.equal(state.wonItems[0].user_id, 6)
   })
 })

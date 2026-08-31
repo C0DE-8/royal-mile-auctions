@@ -85,6 +85,26 @@ function BidPage() {
       .reduce((highest, bid) => Math.max(highest, Number(bid.amount || 0)), 0),
     [itemBids],
   )
+  const visibleBids = useMemo(() => {
+    const bidsByBuyer = new Map()
+
+    itemBids.forEach((bid) => {
+      const key = bid.bidder_id ?? `${bid.bidder_name}-${bid.is_current_user ? 'current' : 'guest'}`
+      const current = bidsByBuyer.get(key)
+      const amount = Number(bid.amount || 0)
+      const currentAmount = Number(current?.amount || 0)
+      const bidTime = new Date(bid.created_at || 0).getTime()
+      const currentTime = new Date(current?.created_at || 0).getTime()
+
+      if (!current || amount > currentAmount || (amount === currentAmount && bidTime > currentTime)) {
+        bidsByBuyer.set(key, bid)
+      }
+    })
+
+    return Array.from(bidsByBuyer.values())
+      .sort((first, second) => Number(second.amount || 0) - Number(first.amount || 0))
+  }, [itemBids])
+  const highestBid = visibleBids[0] || null
   const openingBid = Number(bidSummary?.openingBid ?? getOpeningBid(selectedItem))
   const minimumNextBid = Number(
     bidSummary?.minimumNextBid ?? (currentHighBid > 0 ? currentHighBid + minimumBidIncrement : openingBid),
@@ -327,6 +347,9 @@ function BidPage() {
               <div className="bid-summary">
                 <span>Current high bid</span>
                 <strong>{currentHighBid ? priceFormatter.format(currentHighBid) : 'No bids yet'}</strong>
+                {highestBid && (
+                  <small>{highestBid.is_current_user ? 'You are highest bidder' : `${highestBid.bidder_name} is highest bidder`}</small>
+                )}
               </div>
               <div className="bid-helper-grid">
                 <div>
@@ -363,21 +386,26 @@ function BidPage() {
 
       <section className="admin-panel admin-table-panel">
         <div className="admin-section-head">
-          <span>{isLoadingBids ? 'Loading bids' : `${itemBids.length} bids`}</span>
-          <h2>Bid activity for this car</h2>
+          <span>{isLoadingBids ? 'Loading bids' : `${visibleBids.length} bidders`}</span>
+          <h2>Bidder standings for this car</h2>
         </div>
         <div className="admin-list">
-          {itemBids.map((bid) => (
-            <article key={bid.id} className="bid-row">
-              <strong>{bid.bidder_name}</strong>
-              <span>{priceFormatter.format(Number(bid.amount))} | {bid.status}</span>
+          {visibleBids.map((bid, index) => (
+            <article key={bid.bidder_id ?? bid.id} className={`bid-row${index === 0 ? ' highest' : ''}`}>
+              <div className="bid-row-main">
+                <strong>{bid.is_current_user ? 'You' : bid.bidder_name}</strong>
+                {index === 0 && <span className="bid-rank">{bid.is_current_user ? 'You are highest bidder' : 'Highest bidder'}</span>}
+              </div>
+              <span className="bid-row-meta">
+                {priceFormatter.format(Number(bid.amount))} | {bid.status}
+              </span>
             </article>
           ))}
-          {auth && isLoadingBids && itemBids.length === 0 && <p className="admin-empty">Loading bid activity...</p>}
-          {auth && !isLoadingBids && itemBids.length === 0 && currentHighBid > 0 && (
+          {auth && isLoadingBids && visibleBids.length === 0 && <p className="admin-empty">Loading bid activity...</p>}
+          {auth && !isLoadingBids && visibleBids.length === 0 && currentHighBid > 0 && (
             <p className="admin-empty">Current high bid is {priceFormatter.format(currentHighBid)}. Bid history is being refreshed.</p>
           )}
-          {auth && !isLoadingBids && itemBids.length === 0 && currentHighBid === 0 && (
+          {auth && !isLoadingBids && visibleBids.length === 0 && currentHighBid === 0 && (
             <p className="admin-empty">No bids have been submitted for this car yet.</p>
           )}
           {!auth && <p className="admin-empty">Sign in to see live bid activity.</p>}

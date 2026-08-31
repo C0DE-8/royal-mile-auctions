@@ -60,6 +60,7 @@ const defaultWallet = {
 
 const defaultDemoBid = {
   auctionItemId: '',
+  bidderUserId: '',
   bidderName: '',
   bidderEmail: '',
   amount: '',
@@ -328,6 +329,26 @@ function AdminPage() {
 
   const selectedUsers = useMemo(() => users.filter((user) => selectedUserIds.includes(user.id)), [selectedUserIds, users])
   const manualEmails = useMemo(() => parseManualEmails(mailer.emails), [mailer.emails])
+  const demoBidders = useMemo(() => {
+    const bidderMap = new Map()
+
+    bids.forEach((bid) => {
+      const bidderId = bid.bidder_id || bid.user_id
+
+      if (!bidderId || bidderMap.has(String(bidderId))) {
+        return
+      }
+
+      bidderMap.set(String(bidderId), {
+        id: bidderId,
+        email: bid.bidder_email || '',
+        name: bid.bidder_name || 'Demo bidder',
+      })
+    })
+
+    return Array.from(bidderMap.values())
+      .sort((first, second) => first.name.localeCompare(second.name))
+  }, [bids])
   const mailerRecipientCount = mailer.recipientMode === 'all-active'
     ? summary.activeBuyers
     : mailer.recipientMode === 'selected'
@@ -451,7 +472,20 @@ function AdminPage() {
   }
 
   const updateDemoBid = (event) => {
-    setDemoBid((current) => ({ ...current, [event.target.name]: event.target.value }))
+    const { name, value } = event.target
+
+    if (name === 'bidderUserId') {
+      const bidder = demoBidders.find((item) => String(item.id) === String(value))
+      setDemoBid((current) => ({
+        ...current,
+        bidderEmail: bidder?.email || '',
+        bidderName: bidder?.name || '',
+        bidderUserId: value,
+      }))
+      return
+    }
+
+    setDemoBid((current) => ({ ...current, [name]: value }))
   }
 
   const updateMailer = (event) => {
@@ -543,12 +577,14 @@ function AdminPage() {
         ...demoBid,
         auctionItemId: demoBid.auctionItemId || auctionItems[0]?.id,
       })
-      setBids(await fetchAdminBids(auth.token))
+      await refreshAdminData(auth.token)
       setDemoBid((current) => ({
         ...defaultDemoBid,
         auctionItemId: current.auctionItemId,
+        bidderEmail: current.bidderEmail,
+        bidderName: current.bidderName,
+        bidderUserId: current.bidderUserId,
       }))
-      event.target.reset()
       showSuccess(`Demo bid added for ${item.item_title}.`)
     } catch (error) {
       showError(error.message)
@@ -1083,8 +1119,37 @@ function AdminPage() {
                 ))}
               </select>
             </label>
-            <label>Bidder name<input name="bidderName" value={demoBid.bidderName} onChange={updateDemoBid} required /></label>
-            <label>Bidder email<input name="bidderEmail" type="email" value={demoBid.bidderEmail} onChange={updateDemoBid} /></label>
+            <label className="full">
+              Reuse past bidder
+              <select name="bidderUserId" value={demoBid.bidderUserId} onChange={updateDemoBid}>
+                <option value="">Create new bidder</option>
+                {demoBidders.map((bidder) => (
+                  <option key={bidder.id} value={bidder.id}>
+                    {bidder.name} {bidder.email ? `| ${bidder.email}` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Bidder name
+              <input
+                name="bidderName"
+                value={demoBid.bidderName}
+                onChange={updateDemoBid}
+                readOnly={Boolean(demoBid.bidderUserId)}
+                required={!demoBid.bidderUserId}
+              />
+            </label>
+            <label>
+              Bidder email
+              <input
+                name="bidderEmail"
+                type="email"
+                value={demoBid.bidderEmail}
+                onChange={updateDemoBid}
+                readOnly={Boolean(demoBid.bidderUserId)}
+              />
+            </label>
             <label>Bid amount<input name="amount" value={demoBid.amount} onChange={updateDemoBid} required /></label>
             <label>
               Status
@@ -1098,7 +1163,7 @@ function AdminPage() {
               </select>
             </label>
             <button className="button primary" type="submit" disabled={isSubmitting || auctionItems.length === 0}>
-              {isSubmitting ? 'Adding...' : 'Add demo bid'}
+              {isSubmitting ? 'Adding...' : demoBid.bidderUserId ? 'Add top-up bid' : 'Add demo bid'}
             </button>
           </form>
 
@@ -1125,7 +1190,7 @@ function AdminPage() {
                 disabled={!bidVehicleFilter || isSubmitting}
                 onClick={handleCloseAuction}
               >
-                Close selected auction
+                End selected auction
               </button>
             </div>
             <div className="admin-list">
