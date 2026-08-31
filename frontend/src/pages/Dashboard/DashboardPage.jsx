@@ -6,11 +6,12 @@ import LazyImage from '../../components/LazyImage.jsx'
 import {
   buyerLogin,
   buyerRegister,
-  createPayment,
   fetchBuyerBids,
   fetchBuyerPayments,
+  fetchBuyerWonItems,
   fetchCryptoWallets,
   resolveBuyerAssetUrl,
+  submitPaymentReceipt,
 } from '../../api/buyer.js'
 import { featuredVehicles } from '../../data/siteData.js'
 
@@ -21,8 +22,8 @@ const priceFormatter = new Intl.NumberFormat('en-US', {
 })
 
 const defaultLogin = {
-  email: 'info@royalmileauctions.com',
-  password: 'UserPass123!',
+  email: '',
+  password: '',
 }
 
 const defaultRegister = {
@@ -59,14 +60,14 @@ function DashboardPage() {
   const [login, setLogin] = useState(defaultLogin)
   const [register, setRegister] = useState(defaultRegister)
   const [items, setItems] = useState(featuredVehicles)
-  const [selectedItemId, setSelectedItemId] = useState('')
   const [wallets, setWallets] = useState([])
   const [payments, setPayments] = useState([])
   const [bids, setBids] = useState([])
+  const [wonItems, setWonItems] = useState([])
+  const [receiptFile, setReceiptFile] = useState(null)
   const [payment, setPayment] = useState({
-    amount: '',
     cryptoWalletId: '',
-    currencySymbol: 'BTC',
+    paymentId: '',
     transactionHash: '',
     notes: '',
   })
@@ -101,19 +102,17 @@ function DashboardPage() {
     return Array.from(vehiclesByBid.values())
   }, [bids, items])
 
+  const payableWonItems = useMemo(() => wonItems.filter((item) => item.feePaymentId && item.feeStatus !== 'confirmed'), [wonItems])
+  const selectedFeeItem = useMemo(() => (
+    payableWonItems.find((item) => String(item.feePaymentId) === String(payment.paymentId)) || payableWonItems[0] || null
+  ), [payableWonItems, payment.paymentId])
+
   useEffect(() => {
     fetchAuctionItems()
       .then((nextItems) => {
         setItems(nextItems)
-        if (nextItems[0]) {
-          setSelectedItemId(nextItems[0].id)
-        }
       })
-      .catch(() => {
-        if (featuredVehicles[0]) {
-          setSelectedItemId(featuredVehicles[0].id)
-        }
-      })
+      .catch(() => {})
 
     fetchCryptoWallets()
       .then((nextWallets) => {
@@ -122,7 +121,6 @@ function DashboardPage() {
           setPayment((current) => ({
             ...current,
             cryptoWalletId: nextWallets[0].id,
-            currencySymbol: nextWallets[0].currencySymbol,
           }))
         }
       })
@@ -139,12 +137,15 @@ function DashboardPage() {
     Promise.all([
       fetchBuyerBids(auth.token),
       fetchBuyerPayments(auth.token),
+      fetchBuyerWonItems(auth.token),
     ])
-      .then(([nextBids, nextPayments]) => {
+      .then(([nextBids, nextPayments, nextWonItems]) => {
         setBids(nextBids)
         setPayments(nextPayments)
-        if (nextBids[0]?.auction_item_id) {
-          setSelectedItemId(nextBids[0].auction_item_id)
+        setWonItems(nextWonItems)
+        const nextFeeItem = nextWonItems.find((item) => item.feePaymentId && item.feeStatus !== 'confirmed')
+        if (nextFeeItem) {
+          setPayment((current) => ({ ...current, paymentId: nextFeeItem.feePaymentId }))
         }
       })
       .catch((nextError) => setError(getBuyerFriendlyError(nextError)))
@@ -194,18 +195,39 @@ function DashboardPage() {
     setMessage('')
 
     try {
-      await createPayment(auth.token, {
-        ...payment,
-        auctionItemId: selectedItemId,
-      })
-      setPayments(await fetchBuyerPayments(auth.token))
+      if (!selectedFeeItem) {
+        setError('No auction fee payment is due right now.')
+        return
+      }
+
+      if (!receiptFile) {
+        setError('Upload the payment receipt before submitting.')
+        return
+      }
+
+      const formData = new FormData()
+      formData.append('cryptoWalletId', payment.cryptoWalletId)
+      formData.append('transactionHash', payment.transactionHash)
+      formData.append('notes', payment.notes)
+      formData.append('receipt', receiptFile)
+
+      await submitPaymentReceipt(auth.token, selectedFeeItem.feePaymentId, formData)
+      const [nextPayments, nextWonItems] = await Promise.all([
+        fetchBuyerPayments(auth.token),
+        fetchBuyerWonItems(auth.token),
+      ])
+      setPayments(nextPayments)
+      setWonItems(nextWonItems)
+      const nextFeeItem = nextWonItems.find((item) => item.feePaymentId && item.feeStatus !== 'confirmed')
       setPayment((current) => ({
         ...current,
-        amount: '',
+        paymentId: nextFeeItem?.feePaymentId || '',
         notes: '',
         transactionHash: '',
       }))
-      setMessage('Payment information submitted for review.')
+      setReceiptFile(null)
+      event.target.reset()
+      setMessage('Auction fee receipt submitted for review.')
     } catch (nextError) {
       setError(getBuyerFriendlyError(nextError))
     } finally {
@@ -311,19 +333,35 @@ function DashboardPage() {
             <span>Step 2</span>
             <h2>Submit payment</h2>
           </div>
-          <label>Amount<input value={payment.amount} onChange={(event) => setPayment((current) => ({ ...current, amount: event.target.value }))} required /></label>
+          <label className="full">
+            Won car
+            <select
+              value={selectedFeeItem?.feePaymentId || payment.paymentId}
+              onChange={(event) => setPayment((current) => ({ ...current, paymentId: event.target.value }))}
+              required
+            >
+              {payableWonItems.map((item) => (
+                <option key={item.id} value={item.feePaymentId}>
+                  {item.title} - fee {priceFormatter.format(Number(item.feeAmount || 0))}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Fee amount
+            <input value={selectedFeeItem ? priceFormatter.format(Number(selectedFeeItem.feeAmount || 0)) : ''} readOnly />
+          </label>
           <label>
             Wallet
             <select
               value={payment.cryptoWalletId}
               onChange={(event) => {
-                const nextWallet = wallets.find((item) => String(item.id) === event.target.value)
                 setPayment((current) => ({
                   ...current,
                   cryptoWalletId: event.target.value,
-                  currencySymbol: nextWallet?.currencySymbol || current.currencySymbol,
                 }))
               }}
+              required
             >
               {wallets.map((item) => (
                 <option key={item.id} value={item.id}>{item.currencySymbol} - {item.network}</option>
@@ -331,6 +369,10 @@ function DashboardPage() {
             </select>
           </label>
           <label className="full">Transaction hash<input value={payment.transactionHash} onChange={(event) => setPayment((current) => ({ ...current, transactionHash: event.target.value }))} /></label>
+          <label className="full">Payment receipt<input type="file" accept="image/*,.pdf,application/pdf" onChange={(event) => setReceiptFile(event.target.files[0] || null)} required /></label>
+          {receiptFile && (
+            <p className="admin-file-summary full">Receipt selected: {receiptFile.name}</p>
+          )}
           <label className="full">Notes<textarea value={payment.notes} onChange={(event) => setPayment((current) => ({ ...current, notes: event.target.value }))} /></label>
           {wallets.find((item) => String(item.id) === String(payment.cryptoWalletId)) && (
             <article className="buyer-wallet-card full">
@@ -348,7 +390,10 @@ function DashboardPage() {
               })()}
             </article>
           )}
-          <button className="button primary" type="submit" disabled={isSubmitting}>Submit payment info</button>
+          {!selectedFeeItem && (
+            <p className="admin-empty full">No auction fee is due right now.</p>
+          )}
+          <button className="button primary" type="submit" disabled={isSubmitting || !selectedFeeItem}>Submit fee receipt</button>
         </form>
       </div>
 
@@ -371,14 +416,35 @@ function DashboardPage() {
 
         <section className="admin-panel admin-table-panel">
           <div className="admin-section-head">
+            <span>{wonItems.length} records</span>
+            <h2>Your items</h2>
+          </div>
+          <div className="admin-list">
+            {wonItems.map((item) => (
+              <article key={item.id} className="buyer-selected-item dashboard-bid-vehicle">
+                <LazyImage src={resolveBuyerAssetUrl(item.imageUrl)} alt={item.title} />
+                <div>
+                  <strong>{item.title}</strong>
+                  <span>Fee {priceFormatter.format(Number(item.feeAmount || 0))} | Fee status {item.feeStatus}</span>
+                  <span>Item status {item.itemStatus.replaceAll('_', ' ')}</span>
+                </div>
+              </article>
+            ))}
+            {wonItems.length === 0 && <p className="admin-empty">Won cars will appear here after an auction closes.</p>}
+          </div>
+        </section>
+
+        <section className="admin-panel admin-table-panel">
+          <div className="admin-section-head">
             <span>{payments.length} records</span>
             <h2>Your payments</h2>
           </div>
           <div className="admin-list">
             {payments.map((item) => (
               <article key={item.id}>
-                <strong>{item.item_title || 'Auction payment'}</strong>
-                <span>{priceFormatter.format(Number(item.amount))} | {item.currency_symbol} | {item.status}</span>
+                <strong>{item.itemTitle || 'Auction payment'}</strong>
+                <span>{priceFormatter.format(Number(item.amount))} | {item.currencySymbol} | {item.status}</span>
+                {item.receiptUrl && <a className="table-action" href={resolveBuyerAssetUrl(item.receiptUrl)} target="_blank">View receipt</a>}
               </article>
             ))}
             {payments.length === 0 && <p className="admin-empty">No payments submitted yet.</p>}

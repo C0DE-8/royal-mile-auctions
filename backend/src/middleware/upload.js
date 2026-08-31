@@ -5,6 +5,7 @@ const multer = require('multer')
 const uploadDir = path.join(__dirname, '..', '..', 'uploads')
 
 fs.mkdirSync(path.join(uploadDir, 'auction-items'), { recursive: true })
+fs.mkdirSync(path.join(uploadDir, 'payment-receipts'), { recursive: true })
 fs.mkdirSync(path.join(uploadDir, 'wallet-qr'), { recursive: true })
 
 const storage = multer.diskStorage({
@@ -33,6 +34,19 @@ const upload = multer({
   storage,
 })
 
+const receiptUpload = multer({
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/') && file.mimetype !== 'application/pdf') {
+      cb(new Error('Only image or PDF receipts are allowed.'))
+      return
+    }
+
+    cb(null, true)
+  },
+  limits: { fileSize: 8 * 1024 * 1024 },
+  storage,
+})
+
 function uploadTo(folder) {
   return (req, res, next) => {
     req.uploadFolder = folder
@@ -41,6 +55,7 @@ function uploadTo(folder) {
 }
 
 module.exports = {
+  receiptUpload,
   upload,
   uploadDir,
   uploadTo,

@@ -2052,6 +2052,38 @@ button.table-action:disabled {
   margin-top: 0;
 }
 
+.won-item-card {
+  grid-template-columns: 92px minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(190px, 0.6fr) auto;
+}
+
+.won-item-card .lazy-image {
+  aspect-ratio: 4 / 3;
+  border-radius: 6px;
+  width: 92px;
+}
+
+.admin-inline-field {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 900;
+  gap: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-inline-field select {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  font: inherit;
+  letter-spacing: 0;
+  min-height: 38px;
+  padding: 8px 10px;
+  text-transform: none;
+}
+
 .admin-recipient-mode {
   align-items: center;
   background: rgba(17, 19, 22, 0.035);
@@ -2674,6 +2706,11 @@ button.table-action:disabled {
   .admin-filter-grid,
   .admin-payment-card {
     grid-template-columns: 1fr;
+  }
+
+  .won-item-card .lazy-image {
+    aspect-ratio: 16 / 9;
+    width: 100%;
   }
 
   .admin-payment-card .admin-row-actions {

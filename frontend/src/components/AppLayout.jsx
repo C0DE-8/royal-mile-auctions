@@ -30,6 +30,7 @@ function AppLayout() {
           <Route path="/bid/:id" element={<BidPage />} />
           <Route path="/bid" element={<BidPage />} />
           <Route path="/buyers" element={<BuyerInfoPage />} />
+          <Route path="/login" element={<DashboardPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/sell" element={<SellVehiclePage />} />
           <Route path="/contact" element={<ContactPage />} />

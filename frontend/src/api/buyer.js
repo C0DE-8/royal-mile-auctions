@@ -80,6 +80,28 @@ export async function fetchBuyerPayments(token) {
   }
 }
 
+export async function fetchBuyerWonItems(token) {
+  try {
+    const response = await axiosInstance.get('/api/payments/won-items', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return response.data.data
+  } catch (error) {
+    throw new Error(getBuyerError(error, 'Unable to load won items.'), { cause: error })
+  }
+}
+
+export async function submitPaymentReceipt(token, paymentId, formData) {
+  try {
+    const response = await axiosInstance.post(`/api/payments/${paymentId}/receipt`, formData, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return response.data.data
+  } catch (error) {
+    throw new Error(getBuyerError(error, 'Unable to submit payment receipt.'), { cause: error })
+  }
+}
+
 export async function createPayment(token, form) {
   try {
     const response = await axiosInstance.post('/api/payments', form, {

@@ -53,12 +53,17 @@ npm run dev
 Seed admin login:
 
 - Email: `admin@royalmileauctions.com`
-- Password: `AdminPass123!`
+- Password: `123456`
 
-Seed buyer login:
+Seed buyer logins:
 
 - Email: `info@royalmileauctions.com`
-- Password: `UserPass123!`
+- Email: `jax6920@gmail.com`
+- Email: `8amlight@gmail.com`
+- Email: `david.miller.demo2@demo.local`
+- Email: `emily.johnson.demo2@demo.local`
+- Email: `james.thompson.demo2@demo.local`
+- Password for all buyer test accounts: `123456`
 
 ## User Routes
 
@@ -69,7 +74,9 @@ Send `Authorization: Bearer <token>` from `/api/auth/login`.
 - `GET /api/bids`
 - `POST /api/bids`
 - `GET /api/payments`
+- `GET /api/payments/won-items`
 - `POST /api/payments`
+- `POST /api/payments/:id/receipt`
 
 ## Admin Routes
 
@@ -79,6 +86,8 @@ Send an admin `Authorization: Bearer <token>` from `/api/auth/login`.
 - `GET /api/admin/metrics`
 - `GET /api/admin/payments`
 - `PATCH /api/admin/payments/:id`
+- `GET /api/admin/won-items`
+- `PATCH /api/admin/won-items/:id`
 - `POST /api/admin/auction-items`
 - `PUT /api/admin/auction-items/:id`
 - `DELETE /api/admin/auction-items/:id`

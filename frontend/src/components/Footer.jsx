@@ -23,7 +23,7 @@ function Footer() {
         <strong>Office</strong>
         <p>Bid online. Verify documents and key release before final payment.</p>
         <p>
-          <a href="tel:+13025550188">(302) 555-0188</a> ·{' '}
+          <a href="tel:+15126476269">+1 (512) 647-6269</a> ·{' '}
           <a href="mailto:info@royalmileauctions.com">info@royalmileauctions.com</a>
         </p>
       </div>

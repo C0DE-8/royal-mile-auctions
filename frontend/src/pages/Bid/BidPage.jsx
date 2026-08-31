@@ -32,8 +32,8 @@ function getOpeningBid(item) {
 }
 
 const defaultLogin = {
-  email: 'info@royalmileauctions.com',
-  password: 'UserPass123!',
+  email: '',
+  password: '',
 }
 
 const defaultRegister = {

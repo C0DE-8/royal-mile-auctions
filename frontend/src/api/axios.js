@@ -24,10 +24,13 @@ axiosInstance.interceptors.request.use((config) => {
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized access
+    const requestUrl = error.config?.url || ''
+    const isAuthRequest = requestUrl.includes('/api/auth/login') || requestUrl.includes('/api/auth/register')
+
+    if (error.response?.status === 401 && !isAuthRequest) {
       localStorage.removeItem('token')
-      window.location.href = '/login'
+      localStorage.removeItem('buyerAuth')
+      window.location.href = '/dashboard'
     }
     return Promise.reject(error)
   }

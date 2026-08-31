@@ -66,6 +66,12 @@ password: OYXEu7&p!5f&$88
 - [x] Return a clear summary: total requested, sent count, failed count, and failed recipients.
 - [x] Add a send cap before allowing large sends.
 - [x] Add a database table for email logs.
+- [x] Add auction fee field to auction items.
+- [x] Add won-item tracking table for closed auctions.
+- [x] Add fee payment receipt upload support.
+- [x] Add user won-items endpoint.
+- [x] Add admin won-items endpoint and status update route.
+- [x] Keep won items on hold until the fee payment is confirmed.
 
 ## Suggested Email Log Table
 

@@ -88,6 +88,28 @@ export async function updateAdminPayment(token, id, payload) {
   }
 }
 
+export async function fetchAdminWonItems(token) {
+  try {
+    const response = await axiosInstance.get('/api/admin/won-items', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return response.data.data
+  } catch (error) {
+    throw new Error(error.response?.data?.error || 'Unable to load won items.', { cause: error })
+  }
+}
+
+export async function updateAdminWonItem(token, id, payload) {
+  try {
+    const response = await axiosInstance.patch(`/api/admin/won-items/${id}`, payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return response.data.data
+  } catch (error) {
+    throw new Error(error.response?.data?.error || 'Unable to update won item.', { cause: error })
+  }
+}
+
 export async function createDemoBid(token, form) {
   try {
     const response = await axiosInstance.post('/api/admin/bids/demo', form, {

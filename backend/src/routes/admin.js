@@ -5,7 +5,7 @@ const { authenticate, requireAdmin } = require('../middleware/auth')
 const { upload, uploadTo } = require('../middleware/upload')
 const { query, run } = require('../db')
 const { sendMail } = require('../services/mailer')
-const { toAuctionItem, toEmailLog, toUser, toWallet } = require('../utils/mappers')
+const { toAuctionItem, toEmailLog, toPayment, toUser, toWallet, toWonItem } = require('../utils/mappers')
 const { boolToInt, requireFields } = require('../utils/validation')
 
 const router = express.Router()
@@ -54,6 +54,31 @@ async function addAuctionItemImages(auctionItemId, files = []) {
 
 async function findWallet(id) {
   const rows = await query('SELECT * FROM crypto_wallets WHERE id = ?;', [id])
+  return rows[0]
+}
+
+async function findWonItem(id) {
+  const rows = await query(
+    `SELECT
+      wi.*,
+      u.name AS buyer_name,
+      u.email AS buyer_email,
+      a.title,
+      a.year,
+      a.make,
+      a.model,
+      a.image_url,
+      a.lane,
+      a.lot,
+      p.receipt_url,
+      p.status AS payment_status
+    FROM won_items wi
+    JOIN users u ON u.id = wi.user_id
+    JOIN auction_items a ON a.id = wi.auction_item_id
+    LEFT JOIN payments p ON p.id = wi.fee_payment_id
+    WHERE wi.id = ?;`,
+    [id],
+  )
   return rows[0]
 }
 
@@ -132,6 +157,7 @@ router.get('/metrics', asyncRoute(async (req, res) => {
       (SELECT COUNT(*) FROM users WHERE role = 'user' AND is_active = 1) AS active_buyers,
       (SELECT COUNT(*) FROM bids WHERE status IN ('pending', 'winning')) AS active_bids,
       (SELECT COUNT(*) FROM payments WHERE status IN ('pending', 'submitted')) AS pending_payments,
+      (SELECT COUNT(*) FROM won_items WHERE item_status = 'on_hold') AS held_items,
       (SELECT COUNT(*) FROM auction_items WHERE is_active = 0 OR LOWER(item_status) LIKE 'closed%') AS closed_auctions,
       (SELECT COUNT(*) FROM email_logs WHERE status = 'sent') AS sent_emails,
       (SELECT COUNT(*) FROM email_logs WHERE status = 'failed') AS failed_emails;
@@ -147,6 +173,7 @@ router.get('/metrics', asyncRoute(async (req, res) => {
       admins: Number(metrics.admins || 0),
       closedAuctions: Number(metrics.closed_auctions || 0),
       failedEmails: Number(metrics.failed_emails || 0),
+      heldItems: Number(metrics.held_items || 0),
       pendingPayments: Number(metrics.pending_payments || 0),
       sentEmails: Number(metrics.sent_emails || 0),
       totalUsers: Number(metrics.total_users || 0),
@@ -187,7 +214,61 @@ router.get('/bids', asyncRoute(async (req, res) => {
     params,
   )
 
-  res.json({ data: rows })
+  res.json({ data: rows.map(toPayment) })
+}))
+
+router.get('/won-items', asyncRoute(async (req, res) => {
+  const rows = await query(
+    `SELECT
+      wi.*,
+      u.name AS buyer_name,
+      u.email AS buyer_email,
+      a.title,
+      a.year,
+      a.make,
+      a.model,
+      a.image_url,
+      a.lane,
+      a.lot,
+      p.receipt_url,
+      p.status AS payment_status
+    FROM won_items wi
+    JOIN users u ON u.id = wi.user_id
+    JOIN auction_items a ON a.id = wi.auction_item_id
+    LEFT JOIN payments p ON p.id = wi.fee_payment_id
+    ORDER BY wi.updated_at DESC, wi.id DESC;`,
+  )
+
+  res.json({ data: rows.map(toWonItem) })
+}))
+
+router.patch('/won-items/:id', asyncRoute(async (req, res) => {
+  const allowedStatuses = ['on_hold', 'pending', 'processing', 'docs_in_transit', 'delivered']
+  const id = Number(req.params.id)
+
+  if (!allowedStatuses.includes(req.body.itemStatus)) {
+    res.status(400).json({ error: 'Invalid item status.' })
+    return
+  }
+
+  const existing = await findWonItem(id)
+  if (!existing) {
+    res.status(404).json({ error: 'Won item not found.' })
+    return
+  }
+
+  if (existing.fee_status !== 'confirmed' && req.body.itemStatus !== 'on_hold') {
+    res.status(400).json({ error: 'Confirm the auction fee before moving this item out of hold.' })
+    return
+  }
+
+  await run('UPDATE won_items SET item_status = ?, admin_notes = COALESCE(?, admin_notes) WHERE id = ?;', [
+    req.body.itemStatus,
+    req.body.adminNotes || null,
+    id,
+  ])
+
+  res.json({ data: toWonItem(await findWonItem(id)) })
 }))
 
 router.get('/payments', asyncRoute(async (req, res) => {
@@ -233,6 +314,26 @@ router.patch('/payments/:id', asyncRoute(async (req, res) => {
     id,
   ])
 
+  const paymentRows = await query('SELECT won_item_id FROM payments WHERE id = ?;', [id])
+  const wonItemId = paymentRows[0]?.won_item_id
+
+  if (wonItemId) {
+    const nextFeeStatus = req.body.status === 'confirmed'
+      ? 'confirmed'
+      : req.body.status === 'rejected'
+        ? 'rejected'
+        : req.body.status === 'submitted'
+          ? 'submitted'
+          : 'pending'
+    const nextItemStatus = nextFeeStatus === 'confirmed' ? 'pending' : 'on_hold'
+
+    await run('UPDATE won_items SET fee_status = ?, item_status = ? WHERE id = ?;', [
+      nextFeeStatus,
+      nextItemStatus,
+      wonItemId,
+    ])
+  }
+
   const rows = await query(
     `SELECT
       p.*,
@@ -252,7 +353,7 @@ router.patch('/payments/:id', asyncRoute(async (req, res) => {
     [id],
   )
 
-  res.json({ data: rows[0] })
+  res.json({ data: toPayment(rows[0]) })
 }))
 
 router.post('/bids/demo', asyncRoute(async (req, res) => {
@@ -350,7 +451,59 @@ router.post('/auction-items/:id/close', asyncRoute(async (req, res) => {
     auctionItemId,
   ])
 
+  const feeAmount = Number(existing.auction_fee || 0)
+  await run(
+    `INSERT INTO won_items (
+      user_id, auction_item_id, winning_bid_id, winning_amount, fee_amount,
+      fee_status, item_status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      user_id = VALUES(user_id),
+      winning_bid_id = VALUES(winning_bid_id),
+      winning_amount = VALUES(winning_amount),
+      fee_amount = VALUES(fee_amount),
+      fee_status = IF(fee_status = 'confirmed', fee_status, VALUES(fee_status)),
+      item_status = IF(fee_status = 'confirmed', item_status, VALUES(item_status));`,
+    [
+      winningBid.user_id,
+      auctionItemId,
+      winningBid.id,
+      Number(winningBid.amount),
+      feeAmount,
+      feeAmount > 0 ? 'pending' : 'confirmed',
+      feeAmount > 0 ? 'on_hold' : 'pending',
+    ],
+  )
+
+  const wonItemRows = await query('SELECT id, fee_payment_id FROM won_items WHERE auction_item_id = ?;', [auctionItemId])
+  const wonItemId = wonItemRows[0].id
+  const existingFeePayments = await query(
+    "SELECT id FROM payments WHERE won_item_id = ? AND payment_type = 'auction_fee' ORDER BY id ASC LIMIT 1;",
+    [wonItemId],
+  )
+
+  if (feeAmount > 0 && !existingFeePayments[0]) {
+    const paymentResult = await run(
+      `INSERT INTO payments (
+        user_id, auction_item_id, won_item_id, amount, currency_symbol,
+        payment_type, status, notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
+      [
+        winningBid.user_id,
+        auctionItemId,
+        wonItemId,
+        feeAmount,
+        'USD',
+        'auction_fee',
+        'pending',
+        'Auction fee due before item processing.',
+      ],
+    )
+    await run('UPDATE won_items SET fee_payment_id = ? WHERE id = ?;', [paymentResult.insertId, wonItemId])
+  }
+
   const item = await findAuctionItem(auctionItemId)
+  const wonItem = await findWonItem(wonItemId)
   res.json({
     data: {
       item: toAuctionItem(item),
@@ -358,6 +511,7 @@ router.post('/auction-items/:id/close', asyncRoute(async (req, res) => {
         ...winningBid,
         status: 'won',
       },
+      wonItem: toWonItem(wonItem),
     },
   })
 }))
@@ -376,6 +530,7 @@ router.post('/auction-items', uploadTo('auction-items'), upload.fields([
     'lane',
     'lot',
     'mainPrice',
+    'auctionFee',
     'vin',
     'titleStatus',
     'status',
@@ -398,9 +553,9 @@ router.post('/auction-items', uploadTo('auction-items'), upload.fields([
   const result = await run(
     `INSERT INTO auction_items (
       title, year, make, model, category, miles, lane, lot, main_price,
-      discount_percent, vin, title_status, item_status, seller, light,
+      auction_fee, discount_percent, vin, title_status, item_status, seller, light,
       transmission, drivetrain, notes, image_url, is_active
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
     [
       title,
       Number(body.year),
@@ -411,6 +566,7 @@ router.post('/auction-items', uploadTo('auction-items'), upload.fields([
       body.lane,
       body.lot,
       Number(body.mainPrice),
+      Number(body.auctionFee || 0),
       Number(body.discountPercent || 60),
       body.vin,
       body.titleStatus,
@@ -457,6 +613,7 @@ router.put('/auction-items/:id', uploadTo('auction-items'), upload.fields([
       lane = ?,
       lot = ?,
       main_price = ?,
+      auction_fee = ?,
       discount_percent = ?,
       vin = ?,
       title_status = ?,
@@ -479,6 +636,7 @@ router.put('/auction-items/:id', uploadTo('auction-items'), upload.fields([
       body.lane || existing.lane,
       body.lot || existing.lot,
       Number(body.mainPrice || existing.main_price),
+      Number(body.auctionFee ?? existing.auction_fee),
       Number(body.discountPercent || existing.discount_percent),
       body.vin || existing.vin,
       body.titleStatus || existing.title_status,

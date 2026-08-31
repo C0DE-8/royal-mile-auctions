@@ -14,17 +14,19 @@ import {
   fetchAdminMetrics,
   fetchAdminPayments,
   fetchAdminUsers,
+  fetchAdminWonItems,
   resolveAdminAssetUrl,
   sendAdminEmail,
   updateAdminPayment,
   updateAdminUser,
+  updateAdminWonItem,
   updateAuctionItem,
   updateCryptoWallet,
 } from '../../api/admin.js'
 import { Alert, Toast } from '../../components/Feedback.jsx'
 import LazyImage from '../../components/LazyImage.jsx'
 
-const adminTabs = ['Inventory', 'Bids', 'Payments', 'Wallets', 'Users', 'Mailer']
+const adminTabs = ['Inventory', 'Bids', 'Items', 'Payments', 'Wallets', 'Users', 'Mailer']
 const pageSize = 5
 
 const defaultVehicle = {
@@ -36,6 +38,7 @@ const defaultVehicle = {
   lane: '',
   lot: '',
   mainPrice: '',
+  auctionFee: '',
   discountPercent: '60',
   vin: '',
   titleStatus: '',
@@ -78,6 +81,7 @@ const defaultMetrics = {
   admins: 0,
   closedAuctions: 0,
   failedEmails: 0,
+  heldItems: 0,
   pendingPayments: 0,
   sentEmails: 0,
   totalUsers: 0,
@@ -103,6 +107,7 @@ function vehicleToForm(item) {
     lane: item.lane || '',
     lot: item.lot || '',
     mainPrice: String(item.mainPrice || ''),
+    auctionFee: String(item.auctionFee || ''),
     discountPercent: String(item.discountPercent || 60),
     vin: item.vin || '',
     titleStatus: item.titleStatus || '',
@@ -208,7 +213,7 @@ function AdminPage() {
   const [activeTab, setActiveTab] = useState('Inventory')
   const [login, setLogin] = useState({
     email: 'admin@royalmileauctions.com',
-    password: 'AdminPass123!',
+    password: '123456',
   })
   const [vehicle, setVehicle] = useState(defaultVehicle)
   const [wallet, setWallet] = useState(defaultWallet)
@@ -224,6 +229,7 @@ function AdminPage() {
   const [wallets, setWallets] = useState([])
   const [users, setUsers] = useState([])
   const [payments, setPayments] = useState([])
+  const [wonItems, setWonItems] = useState([])
   const [emailLogs, setEmailLogs] = useState([])
   const [metrics, setMetrics] = useState(defaultMetrics)
   const [selectedUserIds, setSelectedUserIds] = useState([])
@@ -233,10 +239,13 @@ function AdminPage() {
   const [bidVehicleFilter, setBidVehicleFilter] = useState('')
   const [paymentSearch, setPaymentSearch] = useState('')
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('')
+  const [wonItemSearch, setWonItemSearch] = useState('')
+  const [wonItemStatusFilter, setWonItemStatusFilter] = useState('')
   const [inventoryPage, setInventoryPage] = useState(1)
   const [walletPage, setWalletPage] = useState(1)
   const [userPage, setUserPage] = useState(1)
   const [paymentPage, setPaymentPage] = useState(1)
+  const [wonItemPage, setWonItemPage] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [alert, setAlert] = useState(null)
@@ -251,6 +260,7 @@ function AdminPage() {
     activeBuyers: metrics.activeBuyers || users.filter((user) => user.role === 'user' && user.isActive).length,
     closedAuctions: metrics.closedAuctions,
     failedEmails: metrics.failedEmails,
+    heldItems: metrics.heldItems,
     pendingPayments: metrics.pendingPayments,
     sentEmails: metrics.sentEmails,
     totalUsers: metrics.totalUsers || users.length,
@@ -290,16 +300,31 @@ function AdminPage() {
   const filteredPayments = useMemo(() => payments.filter((payment) => {
     const matchesStatus = paymentStatusFilter ? payment.status === paymentStatusFilter : true
     const matchesSearch = includesSearch([
-      payment.buyer_name,
-      payment.buyer_email,
-      payment.item_title,
-      payment.currency_symbol,
-      payment.transaction_hash,
+      payment.buyerName,
+      payment.buyerEmail,
+      payment.itemTitle,
+      payment.currencySymbol,
+      payment.transactionHash,
       payment.status,
     ], paymentSearch)
 
     return matchesStatus && matchesSearch
   }), [paymentSearch, paymentStatusFilter, payments])
+
+  const filteredWonItems = useMemo(() => wonItems.filter((item) => {
+    const matchesStatus = wonItemStatusFilter ? item.itemStatus === wonItemStatusFilter : true
+    const matchesSearch = includesSearch([
+      item.title,
+      item.buyerName,
+      item.buyerEmail,
+      item.lane,
+      item.lot,
+      item.feeStatus,
+      item.itemStatus,
+    ], wonItemSearch)
+
+    return matchesStatus && matchesSearch
+  }), [wonItemSearch, wonItemStatusFilter, wonItems])
 
   const selectedUsers = useMemo(() => users.filter((user) => selectedUserIds.includes(user.id)), [selectedUserIds, users])
   const manualEmails = useMemo(() => parseManualEmails(mailer.emails), [mailer.emails])
@@ -325,6 +350,10 @@ function AdminPage() {
     () => paginate(filteredPayments, paymentPage),
     [filteredPayments, paymentPage],
   )
+  const wonItemList = useMemo(
+    () => paginate(filteredWonItems, wonItemPage),
+    [filteredWonItems, wonItemPage],
+  )
 
   useEffect(() => {
     if (!toast) {
@@ -348,16 +377,18 @@ function AdminPage() {
       fetchAdminCryptoWallets(auth.token),
       fetchAdminUsers(auth.token),
       fetchAdminPayments(auth.token),
+      fetchAdminWonItems(auth.token),
       fetchAdminEmailLogs(auth.token),
       fetchAdminMetrics(auth.token),
     ])
-      .then(([items, nextBids, nextWallets, nextUsers, nextPayments, nextEmailLogs, nextMetrics]) => {
+      .then(([items, nextBids, nextWallets, nextUsers, nextPayments, nextWonItems, nextEmailLogs, nextMetrics]) => {
         if (isMounted) {
           setAuctionItems(items)
           setBids(nextBids)
           setWallets(nextWallets)
           setUsers(nextUsers)
           setPayments(nextPayments)
+          setWonItems(nextWonItems)
           setEmailLogs(nextEmailLogs)
           setMetrics(nextMetrics)
           setAlert({ type: 'success', message: 'Admin data loaded from the backend.' })
@@ -391,12 +422,13 @@ function AdminPage() {
   }
 
   const refreshAdminData = async (token) => {
-    const [items, nextBids, nextWallets, nextUsers, nextPayments, nextEmailLogs, nextMetrics] = await Promise.all([
+    const [items, nextBids, nextWallets, nextUsers, nextPayments, nextWonItems, nextEmailLogs, nextMetrics] = await Promise.all([
       fetchAdminAuctionItems(token),
       fetchAdminBids(token),
       fetchAdminCryptoWallets(token),
       fetchAdminUsers(token),
       fetchAdminPayments(token),
+      fetchAdminWonItems(token),
       fetchAdminEmailLogs(token),
       fetchAdminMetrics(token),
     ])
@@ -405,6 +437,7 @@ function AdminPage() {
     setWallets(nextWallets)
     setUsers(nextUsers)
     setPayments(nextPayments)
+    setWonItems(nextWonItems)
     setEmailLogs(nextEmailLogs)
     setMetrics(nextMetrics)
   }
@@ -561,12 +594,23 @@ function AdminPage() {
   const emailPaymentBuyer = (payment) => {
     setMailer((current) => ({
       ...current,
-      emails: payment.buyer_email || '',
+      emails: payment.buyerEmail || '',
       recipientMode: 'manual',
-      subject: current.subject || `Payment update for ${payment.item_title || 'your auction purchase'}`,
+      subject: current.subject || `Payment update for ${payment.itemTitle || 'your auction purchase'}`,
     }))
     setActiveTab('Mailer')
-    setAlert({ type: 'info', message: `Preparing an email to ${payment.buyer_email}.` })
+    setAlert({ type: 'info', message: `Preparing an email to ${payment.buyerEmail}.` })
+  }
+
+  const emailWonItemBuyer = (item) => {
+    setMailer((current) => ({
+      ...current,
+      emails: item.buyerEmail || '',
+      recipientMode: 'manual',
+      subject: current.subject || `Status update for ${item.title}`,
+    }))
+    setActiveTab('Mailer')
+    setAlert({ type: 'info', message: `Preparing an email to ${item.buyerEmail}.` })
   }
 
   const handleUserStatusToggle = async (user) => {
@@ -612,7 +656,22 @@ function AdminPage() {
     try {
       const updated = await updateAdminPayment(auth.token, payment.id, { status })
       await refreshAdminData(auth.token)
-      showSuccess(`Payment from ${updated.buyer_name} marked ${updated.status}.`)
+      showSuccess(`Payment from ${updated.buyerName || 'buyer'} marked ${updated.status}.`)
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleWonItemStatusChange = async (item, itemStatus) => {
+    setIsSubmitting(true)
+    setAlert(null)
+
+    try {
+      const updated = await updateAdminWonItem(auth.token, item.id, { itemStatus })
+      await refreshAdminData(auth.token)
+      showSuccess(`${updated.title} moved to ${updated.itemStatus.replaceAll('_', ' ')}.`)
     } catch (error) {
       showError(error.message)
     } finally {
@@ -861,6 +920,10 @@ function AdminPage() {
           <strong>{summary.pendingPayments}</strong>
         </article>
         <article>
+          <span>Items on hold</span>
+          <strong>{summary.heldItems}</strong>
+        </article>
+        <article>
           <span>Active buyers</span>
           <strong>{summary.activeBuyers}</strong>
         </article>
@@ -917,6 +980,7 @@ function AdminPage() {
             <label>Lane<input name="lane" value={vehicle.lane} onChange={updateVehicle} required /></label>
             <label>Lot<input name="lot" value={vehicle.lot} onChange={updateVehicle} required /></label>
             <label>Main price<input name="mainPrice" value={vehicle.mainPrice} onChange={updateVehicle} required /></label>
+            <label>Auction fee<input name="auctionFee" value={vehicle.auctionFee} onChange={updateVehicle} required /></label>
             <label>Discount %<input name="discountPercent" value={vehicle.discountPercent} onChange={updateVehicle} /></label>
             <label>VIN<input name="vin" value={vehicle.vin} onChange={updateVehicle} required /></label>
             <label>Title status<input name="titleStatus" value={vehicle.titleStatus} onChange={updateVehicle} required /></label>
@@ -1173,6 +1237,102 @@ function AdminPage() {
         </div>
       )}
 
+      {activeTab === 'Items' && (
+        <div className="admin-panel admin-table-panel">
+          <div className="admin-section-head">
+            <span>{isLoading ? 'Loading' : `${filteredWonItems.length} of ${wonItems.length} items`}</span>
+            <h2>Won item status</h2>
+          </div>
+          <div className="admin-filter-grid">
+            <label className="admin-search">
+              Search items
+              <input
+                type="search"
+                value={wonItemSearch}
+                placeholder="Search buyer, vehicle, lane, lot"
+                onChange={(event) => {
+                  setWonItemSearch(event.target.value)
+                  setWonItemPage(1)
+                }}
+              />
+            </label>
+            <label className="admin-search">
+              Status
+              <select
+                value={wonItemStatusFilter}
+                onChange={(event) => {
+                  setWonItemStatusFilter(event.target.value)
+                  setWonItemPage(1)
+                }}
+              >
+                <option value="">All statuses</option>
+                <option value="on_hold">On hold</option>
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="docs_in_transit">Docs in transit</option>
+                <option value="delivered">Delivered</option>
+              </select>
+            </label>
+          </div>
+          {isLoading ? (
+            <SkeletonList type="table" />
+          ) : (
+            <div className="admin-payment-list">
+              {wonItemList.rows.map((item) => (
+                <article className="admin-payment-card won-item-card" key={item.id}>
+                  <LazyImage src={resolveAdminAssetUrl(item.imageUrl)} alt={item.title} />
+                  <div>
+                    <strong>{item.title}</strong>
+                    <span>Lane {item.lane} | Lot {item.lot}</span>
+                    <span>{item.buyerName} | {item.buyerEmail}</span>
+                  </div>
+                  <div>
+                    <strong>{priceFormatter.format(Number(item.feeAmount || 0))}</strong>
+                    <span>Fee status {item.feeStatus}</span>
+                    <span>Winning bid {priceFormatter.format(Number(item.winningAmount || 0))}</span>
+                  </div>
+                  <label className="admin-inline-field">
+                    Status
+                    <select
+                      value={item.itemStatus}
+                      disabled={isSubmitting}
+                      onChange={(event) => handleWonItemStatusChange(item, event.target.value)}
+                    >
+                      <option value="on_hold">On hold</option>
+                      <option value="pending">Pending</option>
+                      <option value="processing">Processing</option>
+                      <option value="docs_in_transit">Docs in transit</option>
+                      <option value="delivered">Delivered</option>
+                    </select>
+                  </label>
+                  <div className="admin-row-actions">
+                    {item.receiptUrl && (
+                      <a href={resolveAdminAssetUrl(item.receiptUrl)} target="_blank" rel="noreferrer">
+                        Receipt
+                      </a>
+                    )}
+                    <button type="button" onClick={() => emailWonItemBuyer(item)}>
+                      Email buyer
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+          {!isLoading && wonItemList.rows.length === 0 && (
+            <EmptyState message="No won items match this view." />
+          )}
+          {!isLoading && filteredWonItems.length > 0 && (
+            <PaginationControls
+              currentPage={wonItemList.currentPage}
+              pageCount={wonItemList.pageCount}
+              totalCount={filteredWonItems.length}
+              onPageChange={setWonItemPage}
+            />
+          )}
+        </div>
+      )}
+
       {activeTab === 'Payments' && (
         <div className="admin-panel admin-table-panel">
           <div className="admin-section-head">
@@ -1217,16 +1377,21 @@ function AdminPage() {
               {paymentList.rows.map((payment) => (
                 <article className="admin-payment-card" key={payment.id}>
                   <div>
-                    <strong>{payment.buyer_name}</strong>
-                    <span>{payment.buyer_email}</span>
+                    <strong>{payment.buyerName}</strong>
+                    <span>{payment.buyerEmail}</span>
                   </div>
                   <div>
-                    <strong>{priceFormatter.format(Number(payment.amount || 0))} {payment.currency_symbol}</strong>
-                    <span>{payment.item_title || 'No vehicle attached'}</span>
+                    <strong>{priceFormatter.format(Number(payment.amount || 0))} {payment.currencySymbol}</strong>
+                    <span>{payment.itemTitle || 'No vehicle attached'}</span>
                   </div>
                   <div>
                     <strong>{payment.status}</strong>
-                    <span>{payment.transaction_hash || 'No transaction hash'}</span>
+                    <span>{payment.transactionHash || 'No transaction hash'}</span>
+                    {payment.receiptUrl && (
+                      <a className="table-action" href={resolveAdminAssetUrl(payment.receiptUrl)} target="_blank" rel="noreferrer">
+                        View receipt
+                      </a>
+                    )}
                   </div>
                   <div className="admin-row-actions">
                     <button type="button" disabled={isSubmitting} onClick={() => handlePaymentStatusChange(payment, 'confirmed')}>
