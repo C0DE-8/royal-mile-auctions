@@ -11,6 +11,31 @@ function getAuctionPrice(item) {
   return Math.round(Number(item.main_price) * (1 - Number(item.discount_percent || 0) / 100))
 }
 
+async function getAuctionBidSummary(auctionItemId) {
+  const itemRows = await query(
+    'SELECT id, main_price, discount_percent FROM auction_items WHERE id = ?;',
+    [auctionItemId],
+  )
+  const item = itemRows[0]
+
+  if (!item) {
+    return null
+  }
+
+  const highBidRows = await query(
+    'SELECT COALESCE(MAX(amount), 0) AS currentHighBid FROM bids WHERE auction_item_id = ?;',
+    [auctionItemId],
+  )
+  const currentHighBid = Number(highBidRows[0]?.currentHighBid || 0)
+  const openingBid = getAuctionPrice(item)
+
+  return {
+    currentHighBid,
+    minimumNextBid: currentHighBid > 0 ? currentHighBid + minimumBidIncrement : openingBid,
+    openingBid,
+  }
+}
+
 router.use(authenticate)
 
 router.get('/', asyncRoute(async (req, res) => {
@@ -57,6 +82,41 @@ router.get('/auction-item/:id', asyncRoute(async (req, res) => {
   res.json({ data: rows })
 }))
 
+router.get('/auction-item/:id/summary', asyncRoute(async (req, res) => {
+  const auctionItemId = Number(req.params.id)
+  const summary = await getAuctionBidSummary(auctionItemId)
+
+  if (!summary) {
+    res.status(404).json({ error: 'Auction item not found.' })
+    return
+  }
+
+  const rows = await query(
+    `SELECT
+       b.id,
+       b.amount,
+       b.status,
+       b.created_at,
+       u.name AS bidder_name,
+       b.user_id = ? AS is_current_user
+     FROM bids b
+     JOIN users u ON u.id = b.user_id
+     WHERE b.auction_item_id = ?
+     ORDER BY b.amount DESC, b.created_at ASC;`,
+    [req.user.id, auctionItemId],
+  )
+
+  res.json({
+    data: {
+      ...summary,
+      bids: rows.map((bid) => ({
+        ...bid,
+        is_current_user: Boolean(bid.is_current_user),
+      })),
+    },
+  })
+}))
+
 router.post('/', asyncRoute(async (req, res) => {
   requireFields(req.body, ['auctionItemId', 'amount'])
   const itemRows = await query(
@@ -88,6 +148,7 @@ router.post('/', asyncRoute(async (req, res) => {
     res.status(400).json({
       error: `Bid must be at least $${minimumNextBid.toLocaleString('en-US')}.`,
       currentHighBid,
+      openingBid,
       minimumNextBid,
     })
     return

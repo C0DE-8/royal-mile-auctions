@@ -58,6 +58,17 @@ export async function fetchAuctionItemBids(token, auctionItemId) {
   }
 }
 
+export async function fetchAuctionItemBidSummary(token, auctionItemId) {
+  try {
+    const response = await axiosInstance.get(`/api/bids/auction-item/${auctionItemId}/summary`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return response.data.data
+  } catch (error) {
+    throw new Error(getBuyerError(error, 'Unable to load vehicle bid activity.'), { cause: error })
+  }
+}
+
 export async function createBid(token, auctionItemId, amount) {
   try {
     const response = await axiosInstance.post('/api/bids', { amount, auctionItemId }, {
@@ -65,7 +76,11 @@ export async function createBid(token, auctionItemId, amount) {
     })
     return response.data.data
   } catch (error) {
-    throw new Error(getBuyerError(error, 'Unable to place bid.'), { cause: error })
+    const nextError = new Error(getBuyerError(error, 'Unable to place bid.'), { cause: error })
+    nextError.currentHighBid = error.response?.data?.currentHighBid
+    nextError.minimumNextBid = error.response?.data?.minimumNextBid
+    nextError.openingBid = error.response?.data?.openingBid
+    throw nextError
   }
 }
 

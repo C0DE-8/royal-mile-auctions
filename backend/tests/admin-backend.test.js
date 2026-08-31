@@ -31,6 +31,29 @@ const allActiveBuyers = [
   { id: 4, name: 'Active One', email: 'active-one@example.com' },
   { id: 5, name: 'Active Two', email: 'active-two@example.com' },
 ]
+const auctionItem = {
+  id: 20,
+  main_price: 36500,
+  discount_percent: 60,
+}
+const itemBids = [
+  {
+    id: 100,
+    user_id: 6,
+    amount: 14800,
+    status: 'pending',
+    created_at: new Date('2026-08-01T10:00:00Z'),
+    bidder_name: 'Other Buyer',
+  },
+  {
+    id: 101,
+    user_id: buyerUser.id,
+    amount: 14700,
+    status: 'pending',
+    created_at: new Date('2026-08-01T10:05:00Z'),
+    bidder_name: buyerUser.name,
+  },
+]
 
 const state = {
   emailLogs: [],
@@ -66,6 +89,28 @@ const mockDb = {
 
     if (normalized.includes('SELECT id FROM payments WHERE id = ?')) {
       return params[0] === 10 ? [{ id: 10 }] : []
+    }
+
+    if (normalized.includes('SELECT id, main_price, discount_percent FROM auction_items WHERE id = ?')) {
+      return params[0] === auctionItem.id ? [auctionItem] : []
+    }
+
+    if (normalized.includes('SELECT COALESCE(MAX(amount), 0) AS currentHighBid FROM bids WHERE auction_item_id = ?')) {
+      return params[0] === auctionItem.id ? [{ currentHighBid: 14800 }] : [{ currentHighBid: 0 }]
+    }
+
+    if (normalized.includes('FROM bids b JOIN users u ON u.id = b.user_id WHERE b.auction_item_id = ?')) {
+      const currentUserId = params[0]
+      const auctionItemId = params[1]
+
+      if (auctionItemId !== auctionItem.id) {
+        return []
+      }
+
+      return itemBids.map((bid) => ({
+        ...bid,
+        is_current_user: bid.user_id === currentUserId ? 1 : 0,
+      }))
     }
 
     if (normalized.includes('FROM payments p') && normalized.includes('WHERE p.id = ?')) {
@@ -345,5 +390,23 @@ test('payment status update works for admins', async () => {
     assert.equal(response.status, 200)
     assert.equal(payload.data.status, 'confirmed')
     assert.deepEqual(state.paymentUpdates[0], { id: 10, notes: null, status: 'confirmed' })
+  })
+})
+
+test('buyer bid summary returns existing activity and next minimum', async () => {
+  resetState()
+
+  await withServer(async (baseUrl) => {
+    const { payload, response } = await request(baseUrl, `/api/bids/auction-item/${auctionItem.id}/summary`, {
+      method: 'GET',
+      token: tokenFor(buyerUser),
+    })
+
+    assert.equal(response.status, 200)
+    assert.equal(payload.data.currentHighBid, 14800)
+    assert.equal(payload.data.minimumNextBid, 14900)
+    assert.equal(payload.data.bids.length, 2)
+    assert.equal(payload.data.bids[0].bidder_name, 'Other Buyer')
+    assert.equal(payload.data.bids[1].is_current_user, true)
   })
 })

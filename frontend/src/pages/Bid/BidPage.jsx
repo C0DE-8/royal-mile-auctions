@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { fetchAuctionItem, fetchAuctionItems } from '../../api/auctionItems.js'
 import { Alert } from '../../components/Feedback.jsx'
@@ -7,7 +7,7 @@ import {
   buyerLogin,
   buyerRegister,
   createBid,
-  fetchAuctionItemBids,
+  fetchAuctionItemBidSummary,
 } from '../../api/buyer.js'
 import { featuredVehicles } from '../../data/siteData.js'
 
@@ -67,24 +67,47 @@ function BidPage() {
   const [selectedItem, setSelectedItem] = useState(null)
   const [bidAmount, setBidAmount] = useState('')
   const [itemBids, setItemBids] = useState([])
+  const [bidSummary, setBidSummary] = useState(null)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingItem, setIsLoadingItem] = useState(true)
+  const [isLoadingBids, setIsLoadingBids] = useState(false)
 
-  const currentHighBid = useMemo(
+  const listedHighBid = useMemo(
     () => itemBids.reduce((highest, bid) => Math.max(highest, Number(bid.amount || 0)), 0),
     [itemBids],
   )
+  const currentHighBid = Number(bidSummary?.currentHighBid ?? listedHighBid)
   const buyerLastBid = useMemo(
     () => itemBids
       .filter((bid) => bid.is_current_user)
       .reduce((highest, bid) => Math.max(highest, Number(bid.amount || 0)), 0),
     [itemBids],
   )
-  const openingBid = getOpeningBid(selectedItem)
-  const minimumNextBid = currentHighBid > 0 ? currentHighBid + minimumBidIncrement : openingBid
+  const openingBid = Number(bidSummary?.openingBid ?? getOpeningBid(selectedItem))
+  const minimumNextBid = Number(
+    bidSummary?.minimumNextBid ?? (currentHighBid > 0 ? currentHighBid + minimumBidIncrement : openingBid),
+  )
   const suggestedBid = Math.max(minimumNextBid, buyerLastBid + minimumBidIncrement)
+
+  const loadBidActivity = useCallback(async (token = auth?.token, auctionItemId = selectedItemId) => {
+    if (!token || !auctionItemId) {
+      setItemBids([])
+      setBidSummary(null)
+      return null
+    }
+
+    setIsLoadingBids(true)
+    try {
+      const summary = await fetchAuctionItemBidSummary(token, auctionItemId)
+      setItemBids(summary.bids || [])
+      setBidSummary(summary)
+      return summary
+    } finally {
+      setIsLoadingBids(false)
+    }
+  }, [auth?.token, selectedItemId])
 
   useEffect(() => {
     fetchAuctionItems()
@@ -129,13 +152,14 @@ function BidPage() {
 
   useEffect(() => {
     if (!auth?.token || !selectedItemId) {
+      setItemBids([])
+      setBidSummary(null)
       return
     }
 
-    fetchAuctionItemBids(auth.token, selectedItemId)
-      .then(setItemBids)
+    loadBidActivity(auth.token, selectedItemId)
       .catch((nextError) => setError(nextError.message))
-  }, [auth, selectedItemId])
+  }, [auth?.token, loadBidActivity, selectedItemId])
 
   const handleLogin = async (event) => {
     event.preventDefault()
@@ -188,10 +212,23 @@ function BidPage() {
       }
 
       await createBid(auth.token, selectedItemId, bidAmount)
-      setItemBids(await fetchAuctionItemBids(auth.token, selectedItemId))
+      await loadBidActivity(auth.token, selectedItemId)
       setBidAmount('')
       setMessage('Bid submitted.')
     } catch (nextError) {
+      if (nextError.minimumNextBid) {
+        setBidSummary((current) => ({
+          ...current,
+          currentHighBid: Number(nextError.currentHighBid || current?.currentHighBid || 0),
+          minimumNextBid: Number(nextError.minimumNextBid),
+          openingBid: Number(nextError.openingBid || current?.openingBid || openingBid),
+        }))
+        setBidAmount(String(nextError.minimumNextBid))
+      }
+
+      if (auth?.token && selectedItemId) {
+        loadBidActivity(auth.token, selectedItemId).catch(() => {})
+      }
       setError(nextError.message)
     } finally {
       setIsSubmitting(false)
@@ -203,6 +240,7 @@ function BidPage() {
     localStorage.removeItem('token')
     setAuth(null)
     setItemBids([])
+    setBidSummary(null)
   }
 
   return (
@@ -325,7 +363,7 @@ function BidPage() {
 
       <section className="admin-panel admin-table-panel">
         <div className="admin-section-head">
-          <span>{itemBids.length} bids</span>
+          <span>{isLoadingBids ? 'Loading bids' : `${itemBids.length} bids`}</span>
           <h2>Bid activity for this car</h2>
         </div>
         <div className="admin-list">
@@ -335,7 +373,13 @@ function BidPage() {
               <span>{priceFormatter.format(Number(bid.amount))} | {bid.status}</span>
             </article>
           ))}
-          {auth && itemBids.length === 0 && <p className="admin-empty">No bids have been submitted for this car yet.</p>}
+          {auth && isLoadingBids && itemBids.length === 0 && <p className="admin-empty">Loading bid activity...</p>}
+          {auth && !isLoadingBids && itemBids.length === 0 && currentHighBid > 0 && (
+            <p className="admin-empty">Current high bid is {priceFormatter.format(currentHighBid)}. Bid history is being refreshed.</p>
+          )}
+          {auth && !isLoadingBids && itemBids.length === 0 && currentHighBid === 0 && (
+            <p className="admin-empty">No bids have been submitted for this car yet.</p>
+          )}
           {!auth && <p className="admin-empty">Sign in to see live bid activity.</p>}
         </div>
       </section>

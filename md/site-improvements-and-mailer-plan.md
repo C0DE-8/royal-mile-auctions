@@ -26,6 +26,7 @@ The biggest missing piece is operational communication. Admins can see users and
 - [ ] Add clearer empty states for bids, users, wallets, and mail history.
 - [x] Add per-row user actions: edit role, activate/deactivate, and email user.
 - [x] Add admin payment review tab with search, status filter, confirm/reject actions, and email-buyer shortcut.
+- [x] Keep buyer bid page synced with backend bid history after logout/login.
 
 ## Flow Additions
 
@@ -72,6 +73,7 @@ password: OYXEu7&p!5f&$88
 - [x] Add user won-items endpoint.
 - [x] Add admin won-items endpoint and status update route.
 - [x] Keep won items on hold until the fee payment is confirmed.
+- [x] Add bid activity summary endpoint with current high bid and minimum next bid.
 
 ## Suggested Email Log Table
 
@@ -131,6 +133,7 @@ CREATE TABLE IF NOT EXISTS email_logs (
   - [x] Non-admin rejection.
   - [x] All active buyer send.
   - [x] Payment status update.
+  - [x] Buyer bid summary reload after existing bids.
 
 ## Recommended Build Order
 
